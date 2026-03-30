@@ -319,6 +319,340 @@ footer {
 
 .text-muted { color: var(--text-muted); }
 
+/* ─── Навігація (вкладки) ────────────────────────────── */
+.tab-nav {
+  display: flex;
+  gap: .25rem;
+}
+.tab-link {
+  font-size: .85rem;
+  padding: .3rem .7rem;
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: background .15s, color .15s;
+}
+.tab-link:hover  { background: var(--bg); color: var(--text); text-decoration: none; }
+.tab-link.active { background: var(--bg); color: var(--accent); font-weight: 600; }
+
+/* ─── Аналітика ──────────────────────────────────────── */
+.analytics-section {
+  max-width: 960px;
+  margin: 0 auto 2rem;
+  padding: 0 1rem;
+}
+.section-title {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: baseline;
+  gap: .6rem;
+  border-bottom: 2px solid var(--border);
+  padding-bottom: .4rem;
+}
+.section-hint {
+  font-size: .78rem;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+/* KPI картки */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: .75rem;
+  margin-bottom: 1.25rem;
+}
+.kpi-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: .85rem 1rem;
+  text-align: center;
+}
+.kpi-value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--accent);
+  line-height: 1.2;
+}
+.kpi-label {
+  font-size: .75rem;
+  color: var(--text-muted);
+  margin-top: .25rem;
+}
+
+/* Seniority bar */
+.seniority-bar-wrap { margin-top: .5rem; }
+.seniority-label-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: .8rem;
+  margin-bottom: .35rem;
+}
+.seniority-bar {
+  display: flex;
+  height: 18px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--border);
+}
+.sen-seg { transition: width .3s; }
+.seniority-legend {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: .5rem;
+  font-size: .78rem;
+}
+.legend-item { display: flex; align-items: center; gap: .3rem; color: var(--text-muted); }
+.legend-dot { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+
+/* Скоринг легенда */
+.scoring-legend {
+  display: flex;
+  gap: .5rem;
+  flex-wrap: wrap;
+  align-items: center;
+  font-size: .78rem;
+  color: var(--text-muted);
+  margin-bottom: 1rem;
+}
+.scoring-factor {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  padding: .1rem .5rem;
+}
+
+/* Картки компаній */
+.company-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: .75rem;
+}
+.company-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: .85rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+}
+.company-header {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+}
+.company-rank {
+  font-size: .75rem;
+  color: var(--text-muted);
+  min-width: 24px;
+  font-weight: 700;
+}
+.company-name-block { flex: 1; min-width: 0; }
+.company-name {
+  font-weight: 700;
+  font-size: .95rem;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.badge-product {
+  font-size: .65rem;
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+  border-radius: 3px;
+  padding: .05rem .35rem;
+  vertical-align: middle;
+}
+.badge-product.small { font-size: .6rem; }
+
+.score-circle {
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: .9rem;
+  flex-shrink: 0;
+}
+.score-final { background: #eff6ff; color: var(--accent); border: 2px solid #bfdbfe; }
+
+.company-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .35rem .75rem;
+  font-size: .8rem;
+}
+.company-stat { display: flex; gap: .3rem; align-items: center; }
+.stat-label { color: var(--text-muted); }
+.stat-val { font-weight: 500; }
+.salary-val { color: var(--salary); }
+.fresh  { color: #16a34a; }
+.stale  { color: #aaa; }
+
+/* Рівні в картках */
+.sen-tag {
+  font-size: .7rem;
+  font-weight: 700;
+  padding: .05rem .3rem;
+  border-radius: 3px;
+}
+.sen-junior { background: #f0fdf4; color: #16a34a; }
+.sen-middle { background: #eff6ff; color: #2563eb; }
+.sen-senior { background: #fff7ed; color: #ea580c; }
+.sen-lead   { background: #faf5ff; color: #7c3aed; }
+
+/* Dots для таблиці */
+.sen-dot {
+  font-size: .65rem; font-weight: 700;
+  width: 16px; height: 16px;
+  border-radius: 3px;
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: default;
+}
+.dot-junior { background: #f0fdf4; color: #16a34a; }
+.dot-middle { background: #eff6ff; color: #2563eb; }
+.dot-senior { background: #fff7ed; color: #ea580c; }
+.dot-lead   { background: #faf5ff; color: #7c3aed; }
+.sen-cell { display: flex; gap: 2px; align-items: center; }
+
+/* Бар доступності */
+.access-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+}
+.access-bar-track {
+  flex: 1;
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.access-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width .4s;
+}
+.access-easy      { background: #16a34a; }
+.access-medium    { background: #2563eb; }
+.access-hard      { background: #ea580c; }
+.access-very-hard { background: #dc2626; }
+.access-label {
+  font-size: .72rem;
+  font-weight: 700;
+  white-space: nowrap;
+  min-width: 60px;
+  text-align: right;
+}
+.access-label.access-easy      { color: #16a34a; }
+.access-label.access-medium    { color: #2563eb; }
+.access-label.access-hard      { color: #ea580c; }
+.access-label.access-very-hard { color: #dc2626; }
+
+/* Badge доступності в таблиці */
+.access-badge {
+  font-size: .7rem; font-weight: 600;
+  padding: .1rem .4rem;
+  border-radius: 3px;
+}
+.access-badge.access-easy      { background: #f0fdf4; color: #16a34a; }
+.access-badge.access-medium    { background: #eff6ff; color: #2563eb; }
+.access-badge.access-hard      { background: #fff7ed; color: #ea580c; }
+.access-badge.access-very-hard { background: #fef2f2; color: #dc2626; }
+
+.company-actions { margin-top: .25rem; }
+.btn-sm {
+  font-size: .78rem;
+  color: var(--accent);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: .25rem .65rem;
+  text-decoration: none;
+  display: inline-block;
+  transition: background .15s;
+}
+.btn-sm:hover { background: var(--bg); text-decoration: none; }
+
+/* Міні source теги */
+.source-mini {
+  font-size: .65rem; font-weight: 600;
+  padding: .05rem .3rem;
+  border-radius: 3px;
+}
+
+/* Таблиця рейтингу */
+.table-wrap { overflow-x: auto; }
+.rating-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .83rem;
+}
+.rating-table th {
+  text-align: left;
+  padding: .5rem .6rem;
+  border-bottom: 2px solid var(--border);
+  color: var(--text-muted);
+  font-weight: 600;
+  white-space: nowrap;
+  background: var(--surface);
+  position: sticky;
+  top: 0;
+}
+.rating-table td {
+  padding: .45rem .6rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.rating-table tbody tr:hover { background: var(--bg); }
+.rating-table tbody tr:last-child td { border-bottom: none; }
+.table-company { font-weight: 600; }
+.link-small { color: var(--accent); font-size: 1rem; text-decoration: none; }
+.link-small:hover { text-decoration: none; opacity: .7; }
+
+/* Tech Stack */
+.tech-grid {
+  display: flex;
+  flex-direction: column;
+  gap: .4rem;
+}
+.tech-row {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  font-size: .83rem;
+}
+.tech-name {
+  min-width: 130px;
+  text-align: right;
+  color: var(--text-muted);
+  font-size: .78rem;
+}
+.tech-bar-wrap {
+  flex: 1;
+  height: 12px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.tech-bar {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 3px;
+  opacity: .75;
+  transition: width .4s;
+}
+.tech-count {
+  min-width: 32px;
+  text-align: right;
+  font-weight: 600;
+  font-size: .8rem;
+}
+
 /* ─── Мобільний ──────────────────────────────────────── */
 @media (max-width: 600px) {
   .stats { display: none; }

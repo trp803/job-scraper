@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Аналітика вакансій — DevOps Jobs</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<!-- Шапка -->
+<header>
+  <div class="header-inner">
+    <div class="logo">
+      <a href="/" style="text-decoration:none;color:inherit;">
+        <span class="logo-icon">⚙</span> DevOps Jobs
+      </a>
+    </div>
+    <nav class="tab-nav">
+      <a href="/" class="tab-link">Вакансії</a>
+      <a href="/analytics" class="tab-link active">Аналітика</a>
+      <a href="/logs" class="tab-link">Логи</a>
+    </nav>
+  </div>
+</header>
+
+<% if (empty) { %>
+  <div class="empty" style="padding:4rem">
+    <p>Немає даних для аналізу</p>
+    <p class="text-muted">Спочатку запусти парсер: <a href="/">Вакансії → ↻ Оновити</a></p>
+  </div>
+<% } else { %>
+
+<!-- Загальна статистика -->
+<section class="analytics-section">
+  <h2 class="section-title">Огляд ринку</h2>
+  <div class="kpi-grid">
+
+    <div class="kpi-card">
+      <div class="kpi-value"><%= total %></div>
+      <div class="kpi-label">Вакансій знайдено</div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-value"><%= stats.totalCompanies %></div>
+      <div class="kpi-label">Унікальних компаній</div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-value"><%= stats.freshVacancies %></div>
+      <div class="kpi-label">Нових за 7 днів</div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-value"><%= stats.withSalaryPct %>%</div>
+      <div class="kpi-label">Публікують ЗП</div>
+    </div>
+
+    <% if (stats.avgSalary) { %>
+    <div class="kpi-card">
+      <div class="kpi-value">~$<%= stats.avgSalary %></div>
+      <div class="kpi-label">Середня ЗП (USD)</div>
+    </div>
+    <% } %>
+
+    <% if (stats.maxSalary) { %>
+    <div class="kpi-card">
+      <div class="kpi-value">$<%= stats.maxSalary %></div>
+      <div class="kpi-label">Макс. ЗП (USD)</div>
+    </div>
+    <% } %>
+
+  </div>
+
+  <!-- Розподіл по рівнях -->
+  <div class="seniority-bar-wrap">
+    <div class="seniority-label-row">
+      <span>Розподіл за рівнем досвіду</span>
+      <span class="text-muted" style="font-size:.8rem">(<%= total %> вакансій)</span>
+    </div>
+    <div class="seniority-bar">
+      <%
+        const senTotal = Object.values(stats.seniorityDist).reduce((a,b) => a+b, 0) || 1;
+        const senColors = { junior: '#16a34a', middle: '#2563eb', senior: '#ea580c', lead: '#7c3aed', unspecified: '#aaa' };
+        const senLabels = { junior: 'Junior', middle: 'Middle', senior: 'Senior', lead: 'Lead/Arch', unspecified: 'Не вказано' };
+      %>
+      <% for (const [key, val] of Object.entries(stats.seniorityDist)) { %>
+        <% const pct = Math.round(val / senTotal * 100); %>
+        <% if (pct > 0) { %>
+          <div class="sen-seg" style="width:<%= pct %>%;background:<%= senColors[key] || '#aaa' %>"
+               title="<%= senLabels[key] %>: <%= val %> (<%= pct %>%)">
+          </div>
+        <% } %>
+      <% } %>
+    </div>
+    <div class="seniority-legend">
+      <% for (const [key, val] of Object.entries(stats.seniorityDist)) { %>
+        <% if (val > 0) { %>
+          <span class="legend-item">
+            <span class="legend-dot" style="background:<%= senColors[key] || '#aaa' %>"></span>
+            <%= senLabels[key] %>: <b><%= val %></b>
+          </span>
+        <% } %>
+      <% } %>
+    </div>
+  </div>
+</section>
+
+<!-- Топ-15 "Куди подаватися першим" -->
+<section class="analytics-section">
+  <h2 class="section-title">
+    Куди подаватися першим
+    <span class="section-hint">Наш скоринг: привабливість × доступність</span>
+  </h2>
+
+  <div class="scoring-legend">
+    <span>Скоринг враховує:</span>
+    <span class="scoring-factor">👔 рівень вакансій</span>
+    <span class="scoring-factor">📅 свіжість</span>
+    <span class="scoring-factor">💰 зарплата</span>
+    <span class="scoring-factor">📊 кількість позицій</span>
+    <span class="scoring-factor">🏢 тип компанії</span>
+  </div>
+
+  <div class="company-cards">
+    <% topPicks.forEach((c, idx) => { %>
+    <div class="company-card">
+
+      <!-- Ранг і назва -->
+      <div class="company-header">
+        <span class="company-rank">#<%= idx + 1 %></span>
+        <div class="company-name-block">
+          <span class="company-name"><%= c.name %></span>
+          <% if (c.isProduct) { %><span class="badge-product">product</span><% } %>
+        </div>
+        <div class="company-scores">
+          <div class="score-circle score-final" title="Загальний рейтинг"><%= c.finalScore %></div>
+        </div>
+      </div>
+
+      <!-- Деталі -->
+      <div class="company-details">
+
+        <!-- Позиції -->
+        <div class="company-stat">
+          <span class="stat-label">Позицій</span>
+          <span class="stat-val"><%= c.totalVacs %></span>
+        </div>
+
+        <!-- Рівні -->
+        <div class="company-stat">
+          <span class="stat-label">Рівні</span>
+          <span class="stat-val">
+            <% if (c.seniorities.junior > 0) { %><span class="sen-tag sen-junior">J×<%= c.seniorities.junior %></span><% } %>
+            <% if (c.seniorities.middle > 0) { %><span class="sen-tag sen-middle">M×<%= c.seniorities.middle %></span><% } %>
+            <% if (c.seniorities.senior > 0) { %><span class="sen-tag sen-senior">S×<%= c.seniorities.senior %></span><% } %>
+            <% if (c.seniorities.lead > 0)   { %><span class="sen-tag sen-lead">L×<%= c.seniorities.lead %></span><% } %>
+            <% if (c.seniorities.unspecified + c.seniorities.unknown === c.totalVacs) { %><span class="text-muted">—</span><% } %>
+          </span>
+        </div>
+
+        <!-- ЗП -->
+        <% if (c.avgSalary) { %>
+        <div class="company-stat">
+          <span class="stat-label">Сер. ЗП</span>
+          <span class="stat-val salary-val">~$<%= c.avgSalary %></span>
+        </div>
+        <% } %>
+
+        <!-- Свіжість -->
+        <div class="company-stat">
+          <span class="stat-label">Свіжість</span>
+          <span class="stat-val <%= c.minDaysAgo <= 7 ? 'fresh' : c.minDaysAgo <= 30 ? '' : 'stale' %>">
+            <% if (c.minDaysAgo === 0) { %>сьогодні
+            <% } else if (c.minDaysAgo === 1) { %>вчора
+            <% } else if (c.minDaysAgo <= 999) { %><%= c.minDaysAgo %> дн. тому
+            <% } else { %>невідомо<% } %>
+          </span>
+        </div>
+
+        <!-- Майданчики -->
+        <div class="company-stat">
+          <span class="stat-label">Сайти</span>
+          <span class="stat-val">
+            <% c.sources.forEach(s => { %><span class="source-mini source-<%= s.replace('.','') %>"><%= s %></span><% }) %>
+          </span>
+        </div>
+
+      </div>
+
+      <!-- Доступність -->
+      <div class="access-bar-wrap">
+        <div class="access-bar-track">
+          <div class="access-bar-fill access-<%= c.accessClass %>" style="width:<%= c.accessScore %>%"></div>
+        </div>
+        <span class="access-label access-<%= c.accessClass %>"><%= c.accessLabel %></span>
+      </div>
+
+      <!-- Дії -->
+      <div class="company-actions">
+        <a href="/?search=<%= encodeURIComponent(c.name) %>" class="btn-sm">
+          Дивитися вакансії →
+        </a>
+      </div>
+
+    </div>
+    <% }) %>
+  </div>
+</section>
+
+<!-- Повний рейтинг компаній -->
+<section class="analytics-section">
+  <h2 class="section-title">
+    Рейтинг всіх компаній
+    <span class="section-hint"><%= companies.length %> компаній</span>
+  </h2>
+
+  <div class="table-wrap">
+    <table class="rating-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Компанія</th>
+          <th>Позицій</th>
+          <th>Рівні</th>
+          <th>Сер. ЗП</th>
+          <th>Свіжість</th>
+          <th>Доступність</th>
+          <th>Скор</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% companies.forEach((c, idx) => { %>
+        <tr>
+          <td class="text-muted"><%= idx + 1 %></td>
+          <td>
+            <span class="table-company"><%= c.name %></span>
+            <% if (c.isProduct) { %><span class="badge-product small">prod</span><% } %>
+          </td>
+          <td><b><%= c.totalVacs %></b></td>
+          <td class="sen-cell">
+            <% if (c.seniorities.junior > 0) { %><span class="sen-dot dot-junior" title="Junior: <%= c.seniorities.junior %>">J</span><% } %>
+            <% if (c.seniorities.middle > 0) { %><span class="sen-dot dot-middle" title="Middle: <%= c.seniorities.middle %>">M</span><% } %>
+            <% if (c.seniorities.senior > 0) { %><span class="sen-dot dot-senior" title="Senior: <%= c.seniorities.senior %>">S</span><% } %>
+            <% if (c.seniorities.lead > 0)   { %><span class="sen-dot dot-lead"   title="Lead: <%= c.seniorities.lead %>">L</span><% } %>
+          </td>
+          <td><%= c.avgSalary ? '$' + c.avgSalary : '—' %></td>
+          <td class="<%= c.minDaysAgo <= 7 ? 'fresh' : c.minDaysAgo > 60 ? 'stale' : '' %>">
+            <%= c.minDaysAgo <= 999 ? c.minDaysAgo + ' дн.' : '—' %>
+          </td>
+          <td>
+            <span class="access-badge access-<%= c.accessClass %>"><%= c.accessLabel %></span>
+          </td>
+          <td><b><%= c.finalScore %></b></td>
+          <td>
+            <a href="/?search=<%= encodeURIComponent(c.name) %>" class="link-small">→</a>
+          </td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- Tech Stack аналіз -->
+<section class="analytics-section">
+  <h2 class="section-title">
+    Технологічний стек
+    <span class="section-hint">Частота згадок у назвах і описах вакансій</span>
+  </h2>
+
+  <div class="tech-grid">
+    <% techStack.forEach(t => { %>
+    <div class="tech-row">
+      <div class="tech-name"><%= t.key %></div>
+      <div class="tech-bar-wrap">
+        <div class="tech-bar" style="width:<%= t.pct %>%"></div>
+      </div>
+      <div class="tech-count"><%= t.count %></div>
+    </div>
+    <% }) %>
+  </div>
+</section>
+
+<% } %>
+
+<!-- Футер -->
+<footer>
+  <a href="/">← До вакансій</a>
+  &nbsp;·&nbsp;
+  <a href="/logs">Логи парсера</a>
+  &nbsp;·&nbsp;
+  Дані оновлюються автоматично
+</footer>
+
+<script>
+// Підсвічення рядків таблиці при наведенні (вже є в CSS але для touch)
+document.querySelectorAll('.rating-table tbody tr').forEach(tr => {
+  tr.style.cursor = 'pointer';
+  tr.addEventListener('click', () => {
+    const link = tr.querySelector('a');
+    if (link) window.location.href = link.href;
+  });
+});
+</script>
+
+</body>
+</html>

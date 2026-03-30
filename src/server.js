@@ -97,6 +97,22 @@ app.get('/api/vacancies', (req, res) => {
   res.json({ ok: true, count: vacancies.length, data: vacancies });
 });
 
+// ─── Аналітика — рейтинг компаній ────────────────────────
+
+app.get('/analytics', (req, res) => {
+  const { buildAnalytics } = require('./analytics');
+  const data = buildAnalytics();
+  res.render('analytics', data);
+});
+
+// ─── API: вакансії компанії ───────────────────────────────
+
+app.get('/api/company/:name', (req, res) => {
+  const { getCompanyVacancies } = require('./analytics');
+  const vacancies = getCompanyVacancies(req.params.name);
+  res.json({ ok: true, count: vacancies.length, data: vacancies });
+});
+
 // ─── Логи парсера ─────────────────────────────────────────
 
 app.get('/logs', (req, res) => {
