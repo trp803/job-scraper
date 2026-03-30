@@ -1,0 +1,24 @@
+# docker-compose.yml — запуск одной командой: docker compose up -d
+
+services:
+  job-scraper:
+    build: .
+    container_name: job-scraper
+    ports:
+      - "3333:3333"       # UI: http://localhost:3333
+    volumes:
+      - scraper_data:/app/data    # SQLite БД сохраняется между перезапусками
+    environment:
+      - PORT=3333
+      - SCRAPE_SCHEDULE=0 */3 * * *   # каждые 3 часа
+      - NODE_ENV=production
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3333/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+volumes:
+  scraper_data:     # именованный volume — данные не теряются при пересборке

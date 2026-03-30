@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <title>Логи парсера — DevOps Jobs</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo">
+      <a href="/" style="text-decoration:none;color:inherit;">
+        <span class="logo-icon">⚙</span> DevOps Jobs
+      </a>
+    </div>
+    <span style="color:var(--text-muted)">Логи парсера</span>
+  </div>
+</header>
+
+<main style="max-width:800px">
+  <h2 style="margin-bottom:1rem">Останні запуски</h2>
+
+  <% if (logs.length === 0) { %>
+    <p class="text-muted">Поки що запусків не було</p>
+  <% } %>
+
+  <table class="log-table">
+    <thead>
+      <tr>
+        <th>Час</th>
+        <th>Джерело</th>
+        <th>Статус</th>
+        <th>Нових</th>
+        <th>Помилка</th>
+      </tr>
+    </thead>
+    <tbody>
+    <% logs.forEach(log => { %>
+      <tr class="<%= log.status === 'error' ? 'log-error' : '' %>">
+        <td class="text-muted"><%= log.created_at.slice(0,16).replace('T',' ') %></td>
+        <td><b><%= log.source %></b></td>
+        <td><span class="status-badge status-<%= log.status %>"><%= log.status %></span></td>
+        <td><%= log.count %></td>
+        <td class="text-muted"><%= log.error || '—' %></td>
+      </tr>
+    <% }) %>
+    </tbody>
+  </table>
+
+  <p style="margin-top:1.5rem"><a href="/">← Назад до вакансій</a></p>
+</main>
+
+</body>
+</html>

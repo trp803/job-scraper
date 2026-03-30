@@ -1,0 +1,23 @@
+{
+  "name": "job-scraper",
+  "version": "1.0.0",
+  "description": "DevOps jobs scraper — Ukraine/Kyiv",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "scrape": "node src/scrapers/index.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.2",
+    "better-sqlite3": "^9.6.0",
+    "cheerio": "^1.0.0",
+    "express": "^4.19.2",
+    "ejs": "^3.1.10",
+    "node-cron": "^3.0.3",
+    "axios-retry": "^4.5.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4"
+  }
+}

@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DevOps Jobs — Ukraine</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<!-- Шапка -->
+<header>
+  <div class="header-inner">
+    <div class="logo">
+      <span class="logo-icon">⚙</span>
+      <span>DevOps Jobs</span>
+      <span class="badge-new"><%= stats.new %> нових</span>
+    </div>
+    <div class="stats">
+      <span>Всього: <b><%= stats.total %></b></span>
+      <span>Сьогодні: <b><%= stats.today %></b></span>
+      <!--
+      <% if (stats.lastRun) { %>
+        <span class="text-muted">Оновлено: <%= stats.lastRun.created_at.slice(0,16).replace('T',' ') %></span>
+      <% } %>
+      -->
+    </div>
+    <button class="btn-scrape" onclick="runScraper()">↻ Оновити</button>
+  </div>
+</header>
+
+<!-- Фільтри -->
+<div class="filters">
+  <form method="GET" action="/" id="filterForm">
+
+    <!-- Пошук -->
+    <input
+      type="text"
+      name="search"
+      placeholder="Пошук..."
+      value="<%= filter.search || '' %>"
+      class="input-search"
+      onchange="this.form.submit()"
+    >
+
+    <!-- Джерело -->
+    <select name="source" onchange="this.form.submit()" class="select-source">
+      <option value="all"     <%= filter.source === 'all'       ? 'selected' : '' %>>Всі сайти</option>
+      <option value="hh.ua"   <%= filter.source === 'hh.ua'     ? 'selected' : '' %>>hh.ua</option>
+      <option value="dou.ua"  <%= filter.source === 'dou.ua'    ? 'selected' : '' %>>dou.ua</option>
+      <option value="djinni.co" <%= filter.source === 'djinni.co' ? 'selected' : '' %>>djinni.co</option>
+      <option value="work.ua" <%= filter.source === 'work.ua'   ? 'selected' : '' %>>work.ua</option>
+      <option value="rabota.ua" <%= filter.source === 'rabota.ua' ? 'selected' : '' %>>rabota.ua</option>
+    </select>
+
+    <!-- Тільки нові -->
+    <label class="toggle">
+      <input
+        type="checkbox"
+        name="new"
+        value="1"
+        <%= filter.onlyNew ? 'checked' : '' %>
+        onchange="this.form.submit()"
+      >
+      <span>Тільки нові</span>
+    </label>
+
+    <!-- Счётчик результатов -->
+    <span class="results-count"><%= pagination.count %> вакансій</span>
+
+  </form>
+
+  <!-- Источники — быстрые ссылки со счётчиками -->
+  <div class="source-pills">
+    <% stats.sources.forEach(s => { %>
+      <a href="/?source=<%= s.source %>" class="pill <%= filter.source === s.source ? 'active' : '' %>">
+        <%= s.source %> <span class="pill-count"><%= s.cnt %></span>
+      </a>
+    <% }) %>
+  </div>
+</div>
+
+<!-- Список вакансий -->
+<main>
+  <% if (vacancies.length === 0) { %>
+    <div class="empty">
+      <p>Вакансій не знайдено</p>
+      <p class="text-muted">Спробуй змінити фільтри або натисни "↻ Оновити"</p>
+    </div>
+  <% } %>
+
+  <% vacancies.forEach(v => { %>
+    <article class="job-card <%= v.is_new ? 'is-new' : '' %> <%= v.is_viewed ? 'is-viewed' : '' %>" id="job-<%= v.id %>">
+
+      <!-- Источник + дата -->
+      <div class="job-meta">
+        <span class="source-tag source-<%= v.source.replace('.', '-') %>"><%= v.source %></span>
+        <% if (v.is_new) { %><span class="tag-new">NEW</span><% } %>
+        <span class="job-date"><%= v.published_at || v.created_at.slice(0,10) %></span>
+      </div>
+
+      <!-- Заголовок -->
+      <h2 class="job-title">
+        <a href="<%= v.url %>" target="_blank" rel="noopener" onclick="markViewed(<%= v.id %>)">
+          <%= v.title %>
+        </a>
+      </h2>
+
+      <!-- Компания + зарплата + локация -->
+      <div class="job-info">
+        <% if (v.company) { %>
+          <span class="company"><%= v.company %></span>
+        <% } %>
+        <% if (v.salary) { %>
+          <span class="salary"><%= v.salary %></span>
+        <% } %>
+        <% if (v.location) { %>
+          <span class="location">📍 <%= v.location %></span>
+        <% } %>
+      </div>
+
+      <!-- Описание (если есть) -->
+      <% if (v.description) { %>
+        <p class="job-desc"><%= v.description %></p>
+      <% } %>
+
+    </article>
+  <% }) %>
+</main>
+
+<!-- Пагинация -->
+<% if (pagination.total > 1) { %>
+<nav class="pagination">
+  <% if (pagination.current > 1) { %>
+    <a href="?page=<%= pagination.current - 1 %>&source=<%= filter.source %>&search=<%= filter.search || '' %>&new=<%= filter.onlyNew ? '1' : '' %>">← Назад</a>
+  <% } %>
+
+  <span>Стор. <%= pagination.current %> / <%= pagination.total %></span>
+
+  <% if (pagination.current < pagination.total) { %>
+    <a href="?page=<%= pagination.current + 1 %>&source=<%= filter.source %>&search=<%= filter.search || '' %>&new=<%= filter.onlyNew ? '1' : '' %>">Вперед →</a>
+  <% } %>
+</nav>
+<% } %>
+
+<!-- Подвал -->
+<footer>
+  <a href="/logs">Логи парсера</a>
+  &nbsp;·&nbsp;
+  Оновлення кожні 3 год
+</footer>
+
+<script>
+// Пометить вакансию просмотренной (без перезагрузки страницы)
+function markViewed(id) {
+  fetch(`/viewed/${id}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+  });
+  const card = document.getElementById(`job-${id}`);
+  if (card) {
+    card.classList.remove('is-new');
+    card.classList.add('is-viewed');
+    const badge = card.querySelector('.tag-new');
+    if (badge) badge.remove();
+  }
+}
+
+// Ручной запуск парсера
+function runScraper() {
+  const btn = document.querySelector('.btn-scrape');
+  btn.textContent = '↻ Запускаю...';
+  btn.disabled = true;
+
+  fetch('/scrape', { method: 'POST' })
+    .then(r => r.json())
+    .then(() => {
+      btn.textContent = '↻ Запущено';
+      setTimeout(() => { btn.textContent = '↻ Оновити'; btn.disabled = false; }, 3000);
+    })
+    .catch(() => { btn.textContent = '↻ Оновити'; btn.disabled = false; });
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,328 @@
+/* style.css — мінімалістичний дизайн без фреймворків */
+
+/* ─── Змінні ─────────────────────────────────────────── */
+:root {
+  --bg:          #f8f8f8;
+  --surface:     #ffffff;
+  --border:      #e4e4e4;
+  --text:        #1a1a1a;
+  --text-muted:  #777;
+  --accent:      #2563eb;       /* синій */
+  --new:         #16a34a;       /* зелений для NEW */
+  --viewed:      #aaa;
+  --salary:      #15803d;
+  --radius:      6px;
+  --shadow:      0 1px 3px rgba(0,0,0,.06);
+}
+
+/* ─── Reset ──────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 15px; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+  min-height: 100vh;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ─── Шапка ──────────────────────────────────────────── */
+header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.header-inner {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: .75rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+.logo {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  font-weight: 700;
+  font-size: 1.1rem;
+  white-space: nowrap;
+}
+.logo-icon { font-size: 1.2rem; }
+
+.badge-new {
+  background: var(--new);
+  color: #fff;
+  font-size: .7rem;
+  font-weight: 600;
+  padding: .1rem .45rem;
+  border-radius: 99px;
+  letter-spacing: .02em;
+}
+
+.stats {
+  display: flex;
+  gap: 1rem;
+  font-size: .85rem;
+  color: var(--text-muted);
+  flex: 1;
+}
+.stats b { color: var(--text); }
+
+.btn-scrape {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: .35rem .8rem;
+  font-size: .85rem;
+  cursor: pointer;
+  color: var(--text);
+  white-space: nowrap;
+  transition: background .15s;
+}
+.btn-scrape:hover { background: var(--bg); }
+.btn-scrape:disabled { opacity: .5; cursor: not-allowed; }
+
+/* ─── Фільтри ────────────────────────────────────────── */
+.filters {
+  max-width: 960px;
+  margin: .75rem auto;
+  padding: 0 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+}
+.filters form {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  flex-wrap: wrap;
+}
+
+.input-search {
+  padding: .4rem .7rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: .9rem;
+  width: 200px;
+  background: var(--surface);
+  color: var(--text);
+  outline: none;
+}
+.input-search:focus { border-color: var(--accent); }
+
+.select-source {
+  padding: .4rem .6rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: .9rem;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  outline: none;
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+  font-size: .85rem;
+  cursor: pointer;
+  user-select: none;
+  color: var(--text-muted);
+}
+.toggle input { cursor: pointer; }
+
+.results-count {
+  font-size: .8rem;
+  color: var(--text-muted);
+  margin-left: auto;
+}
+
+/* Пілюлі джерел */
+.source-pills {
+  display: flex;
+  gap: .4rem;
+  flex-wrap: wrap;
+}
+.pill {
+  font-size: .75rem;
+  padding: .15rem .55rem;
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  color: var(--text-muted);
+  transition: all .15s;
+}
+.pill:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
+.pill.active { border-color: var(--accent); color: var(--accent); background: #eff6ff; }
+.pill-count { font-size: .7rem; }
+
+/* ─── Список вакансій ────────────────────────────────── */
+main {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0 1rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+}
+
+.job-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: .85rem 1rem;
+  box-shadow: var(--shadow);
+  transition: border-color .15s;
+}
+.job-card:hover { border-color: #bbb; }
+
+/* Нова вакансія — акцент зліва */
+.job-card.is-new {
+  border-left: 3px solid var(--new);
+}
+
+/* Переглянута — вицвіла */
+.job-card.is-viewed {
+  opacity: .6;
+}
+
+/* Мета: джерело + дата */
+.job-meta {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  margin-bottom: .35rem;
+  font-size: .78rem;
+}
+
+/* Кольорові теги джерел */
+.source-tag {
+  font-size: .7rem;
+  font-weight: 600;
+  padding: .1rem .45rem;
+  border-radius: 3px;
+  text-transform: lowercase;
+  letter-spacing: .02em;
+}
+.source-hh-ua    { background: #fef2f2; color: #dc2626; }
+.source-dou-ua   { background: #fff7ed; color: #ea580c; }
+.source-djinni-co { background: #f0fdf4; color: #16a34a; }
+.source-work-ua  { background: #eff6ff; color: #2563eb; }
+.source-rabota-ua { background: #faf5ff; color: #7c3aed; }
+
+.tag-new {
+  font-size: .65rem;
+  font-weight: 700;
+  color: var(--new);
+  letter-spacing: .05em;
+}
+.job-date { color: var(--text-muted); margin-left: auto; }
+
+/* Заголовок вакансии */
+.job-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: .3rem;
+  line-height: 1.3;
+}
+.job-title a { color: var(--text); }
+.job-title a:hover { color: var(--accent); text-decoration: none; }
+
+/* Компания, зарплата, место */
+.job-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  font-size: .84rem;
+  margin-bottom: .25rem;
+}
+.company { color: var(--text-muted); }
+.salary  { color: var(--salary); font-weight: 600; }
+.location { color: var(--text-muted); font-size: .8rem; }
+
+/* Описание */
+.job-desc {
+  font-size: .82rem;
+  color: var(--text-muted);
+  margin-top: .25rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ─── Пустой результат ───────────────────────────────── */
+.empty {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--text-muted);
+}
+.empty p:first-child { font-size: 1.1rem; margin-bottom: .5rem; }
+
+/* ─── Пагинация ──────────────────────────────────────── */
+.pagination {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  font-size: .9rem;
+  color: var(--text-muted);
+}
+
+/* ─── Футер ──────────────────────────────────────────── */
+footer {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: .75rem 1rem 2rem;
+  font-size: .8rem;
+  color: var(--text-muted);
+  border-top: 1px solid var(--border);
+}
+
+/* ─── Логи ───────────────────────────────────────────── */
+.log-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .85rem;
+}
+.log-table th {
+  text-align: left;
+  padding: .5rem;
+  border-bottom: 2px solid var(--border);
+  color: var(--text-muted);
+  font-weight: 600;
+}
+.log-table td {
+  padding: .45rem .5rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+.log-table tr:last-child td { border-bottom: none; }
+.log-table .log-error td { background: #fef2f2; }
+
+.status-badge {
+  font-size: .75rem;
+  font-weight: 600;
+  padding: .1rem .4rem;
+  border-radius: 3px;
+}
+.status-ok    { background: #f0fdf4; color: #16a34a; }
+.status-error { background: #fef2f2; color: #dc2626; }
+
+.text-muted { color: var(--text-muted); }
+
+/* ─── Мобільний ──────────────────────────────────────── */
+@media (max-width: 600px) {
+  .stats { display: none; }
+  .input-search { width: 140px; }
+  .results-count { display: none; }
+  .header-inner { gap: .75rem; }
+}
