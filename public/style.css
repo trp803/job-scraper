@@ -245,6 +245,50 @@ main {
 .salary  { color: var(--salary); font-weight: 600; }
 .location { color: var(--text-muted); font-size: .8rem; }
 
+/* Рівень і формат роботи в мета-рядку */
+.level-tag {
+  font-size: .7rem; font-weight: 700;
+  padding: .1rem .4rem; border-radius: 3px;
+}
+.level-intern { background: #f5f3ff; color: #6d28d9; }
+.level-junior { background: #f0fdf4; color: #16a34a; }
+.level-middle { background: #eff6ff; color: #2563eb; }
+.level-senior { background: #fff7ed; color: #c2410c; }
+.level-lead   { background: #faf5ff; color: #7c3aed; }
+.level-staff  { background: #fdf4ff; color: #9333ea; }
+
+.format-tag {
+  font-size: .68rem; font-weight: 600;
+  padding: .1rem .4rem; border-radius: 3px;
+  border: 1px solid currentColor;
+}
+.format-remote { color: #0891b2; background: #ecfeff; }
+.format-hybrid { color: #7c3aed; background: #faf5ff; }
+.format-office { color: #78716c; background: #fafaf9; }
+
+/* Досвід */
+.exp-tag {
+  font-size: .75rem; color: var(--text-muted);
+  background: var(--bg); border: 1px solid var(--border);
+  padding: .05rem .4rem; border-radius: 3px;
+}
+
+/* Tech-теги на картці */
+.tech-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .3rem;
+  margin-top: .3rem;
+}
+.tech-pill {
+  font-size: .7rem; font-weight: 500;
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+  border-radius: 3px;
+  padding: .1rem .4rem;
+}
+
 /* Описание */
 .job-desc {
   font-size: .82rem;
@@ -318,6 +362,40 @@ footer {
 .status-error { background: #fef2f2; color: #dc2626; }
 
 .text-muted { color: var(--text-muted); }
+
+/* ─── Toast сповіщення ───────────────────────────────── */
+.toast {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 999;
+  background: #1a1a1a;
+  color: #fff;
+  border-radius: var(--radius);
+  padding: .75rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  font-size: .88rem;
+  box-shadow: 0 4px 16px rgba(0,0,0,.2);
+  max-width: 380px;
+  transition: opacity .25s, transform .25s;
+}
+.toast-hidden  { opacity: 0; pointer-events: none; transform: translateY(-8px); }
+.toast-good    { background: #14532d; border-left: 3px solid #16a34a; }
+.toast-info    { background: #1e293b; border-left: 3px solid #64748b; }
+.toast-btn     { background: #16a34a; color: #fff; border: none; border-radius: 4px;
+                 padding: .25rem .65rem; font-size: .8rem; cursor: pointer; white-space: nowrap; }
+.toast-btn:hover { opacity: .85; }
+.toast-close   { background: transparent; color: #aaa; border: none;
+                 font-size: 1rem; cursor: pointer; padding: 0 .2rem; line-height: 1; }
+.toast-close:hover { color: #fff; }
+
+/* ─── SSE індикатор ──────────────────────────────────── */
+.sse-indicator { font-size: .6rem; color: #aaa; transition: color .3s; }
+
+/* ─── Статус парсера в шапці ─────────────────────────── */
+.scraper-status { font-size: .9rem; }
 
 /* ─── Навігація (вкладки) ────────────────────────────── */
 .tab-nav {

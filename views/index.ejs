@@ -8,13 +8,20 @@
 </head>
 <body>
 
+<!-- ─── SSE Notification Toast ─────────────────────────────────── -->
+<div id="toast" class="toast toast-hidden">
+  <span id="toast-msg"></span>
+  <button onclick="reloadPage()" class="toast-btn">Оновити</button>
+  <button onclick="closeToast()" class="toast-close">✕</button>
+</div>
+
 <!-- Шапка -->
 <header>
   <div class="header-inner">
     <div class="logo">
       <span class="logo-icon">⚙</span>
       <span>DevOps Jobs</span>
-      <span class="badge-new"><%= stats.new %> нових</span>
+      <span class="badge-new" id="new-badge"><%= stats.new %> нових</span>
     </div>
     <nav class="tab-nav">
       <a href="/" class="tab-link active">Вакансії</a>
@@ -22,15 +29,11 @@
       <a href="/logs" class="tab-link">Логи</a>
     </nav>
     <div class="stats">
-      <span>Всього: <b><%= stats.total %></b></span>
+      <span>Всього: <b id="stat-total"><%= stats.total %></b></span>
       <span>Сьогодні: <b><%= stats.today %></b></span>
-      <!--
-      <% if (stats.lastRun) { %>
-        <span class="text-muted">Оновлено: <%= stats.lastRun.created_at.slice(0,16).replace('T',' ') %></span>
-      <% } %>
-      -->
     </div>
-    <button class="btn-scrape" onclick="runScraper()">↻ Оновити</button>
+    <div class="scraper-status" id="scraper-status"></div>
+    <button class="btn-scrape" id="btn-scrape" onclick="runScraper()">↻ Оновити</button>
   </div>
 </header>
 
@@ -38,54 +41,60 @@
 <div class="filters">
   <form method="GET" action="/" id="filterForm">
 
-    <!-- Пошук -->
-    <input
-      type="text"
-      name="search"
-      placeholder="Пошук..."
-      value="<%= filter.search || '' %>"
-      class="input-search"
-      onchange="this.form.submit()"
-    >
+    <input type="text" name="search" placeholder="Пошук за назвою..."
+      value="<%= filter.search || '' %>" class="input-search"
+      onchange="this.form.submit()">
 
     <!-- Джерело -->
     <select name="source" onchange="this.form.submit()" class="select-source">
-      <option value="all"     <%= filter.source === 'all'       ? 'selected' : '' %>>Всі сайти</option>
-      <option value="hh.ua"   <%= filter.source === 'hh.ua'     ? 'selected' : '' %>>hh.ua</option>
-      <option value="dou.ua"  <%= filter.source === 'dou.ua'    ? 'selected' : '' %>>dou.ua</option>
-      <option value="djinni.co" <%= filter.source === 'djinni.co' ? 'selected' : '' %>>djinni.co</option>
-      <option value="work.ua" <%= filter.source === 'work.ua'   ? 'selected' : '' %>>work.ua</option>
-      <option value="rabota.ua" <%= filter.source === 'rabota.ua' ? 'selected' : '' %>>rabota.ua</option>
+      <option value="all"       <%= filter.source==='all'       ?'selected':'' %>>Всі сайти</option>
+      <option value="hh.ua"     <%= filter.source==='hh.ua'     ?'selected':'' %>>hh.ua</option>
+      <option value="dou.ua"    <%= filter.source==='dou.ua'    ?'selected':'' %>>dou.ua</option>
+      <option value="djinni.co" <%= filter.source==='djinni.co' ?'selected':'' %>>djinni.co</option>
+      <option value="work.ua"   <%= filter.source==='work.ua'   ?'selected':'' %>>work.ua</option>
+      <option value="rabota.ua" <%= filter.source==='rabota.ua' ?'selected':'' %>>rabota.ua</option>
+    </select>
+
+    <!-- Рівень -->
+    <select name="level" onchange="this.form.submit()" class="select-source">
+      <option value=""         <%= !filter.level             ?'selected':'' %>>Всі рівні</option>
+      <option value="intern"   <%= filter.level==='intern'   ?'selected':'' %>>Intern</option>
+      <option value="junior"   <%= filter.level==='junior'   ?'selected':'' %>>Junior</option>
+      <option value="middle"   <%= filter.level==='middle'   ?'selected':'' %>>Middle</option>
+      <option value="senior"   <%= filter.level==='senior'   ?'selected':'' %>>Senior</option>
+      <option value="lead"     <%= filter.level==='lead'     ?'selected':'' %>>Lead</option>
+    </select>
+
+    <!-- Remote -->
+    <select name="remote" onchange="this.form.submit()" class="select-source">
+      <option value=""        <%= !filter.remote           ?'selected':'' %>>Будь-який формат</option>
+      <option value="remote"  <%= filter.remote==='remote' ?'selected':'' %>>Remote</option>
+      <option value="hybrid"  <%= filter.remote==='hybrid' ?'selected':'' %>>Hybrid</option>
+      <option value="office"  <%= filter.remote==='office' ?'selected':'' %>>Office</option>
     </select>
 
     <!-- Тільки нові -->
     <label class="toggle">
-      <input
-        type="checkbox"
-        name="new"
-        value="1"
-        <%= filter.onlyNew ? 'checked' : '' %>
-        onchange="this.form.submit()"
-      >
+      <input type="checkbox" name="new" value="1"
+        <%= filter.onlyNew ? 'checked' : '' %> onchange="this.form.submit()">
       <span>Тільки нові</span>
     </label>
 
-    <!-- Счётчик результатов -->
     <span class="results-count"><%= pagination.count %> вакансій</span>
-
   </form>
 
-  <!-- Источники — быстрые ссылки со счётчиками -->
+  <!-- Пілюлі джерел -->
   <div class="source-pills">
     <% stats.sources.forEach(s => { %>
-      <a href="/?source=<%= s.source %>" class="pill <%= filter.source === s.source ? 'active' : '' %>">
+      <a href="/?source=<%= s.source %>"
+         class="pill <%= filter.source===s.source?'active':'' %>">
         <%= s.source %> <span class="pill-count"><%= s.cnt %></span>
       </a>
     <% }) %>
   </div>
 </div>
 
-<!-- Список вакансий -->
+<!-- Список вакансій -->
 <main>
   <% if (vacancies.length === 0) { %>
     <div class="empty">
@@ -95,96 +104,211 @@
   <% } %>
 
   <% vacancies.forEach(v => { %>
-    <article class="job-card <%= v.is_new ? 'is-new' : '' %> <%= v.is_viewed ? 'is-viewed' : '' %>" id="job-<%= v.id %>">
+  <article class="job-card <%= v.is_new ? 'is-new' : '' %> <%= v.is_viewed ? 'is-viewed' : '' %>"
+           id="job-<%= v.id %>">
 
-      <!-- Источник + дата -->
-      <div class="job-meta">
-        <span class="source-tag source-<%= v.source.replace('.', '-') %>"><%= v.source %></span>
-        <% if (v.is_new) { %><span class="tag-new">NEW</span><% } %>
-        <span class="job-date"><%= v.published_at || v.created_at.slice(0,10) %></span>
-      </div>
+    <!-- Рядок 1: Джерело + рівень + remote + дата -->
+    <div class="job-meta">
+      <span class="source-tag source-<%= v.source.replace(/\./g,'-') %>"><%= v.source %></span>
 
-      <!-- Заголовок -->
-      <h2 class="job-title">
-        <a href="<%= v.url %>" target="_blank" rel="noopener" onclick="markViewed(<%= v.id %>)">
-          <%= v.title %>
-        </a>
-      </h2>
-
-      <!-- Компания + зарплата + локация -->
-      <div class="job-info">
-        <% if (v.company) { %>
-          <span class="company"><%= v.company %></span>
-        <% } %>
-        <% if (v.salary) { %>
-          <span class="salary"><%= v.salary %></span>
-        <% } %>
-        <% if (v.location) { %>
-          <span class="location">📍 <%= v.location %></span>
-        <% } %>
-      </div>
-
-      <!-- Описание (если есть) -->
-      <% if (v.description) { %>
-        <p class="job-desc"><%= v.description %></p>
+      <% if (v.level) { %>
+        <span class="level-tag level-<%= v.level.key %>"><%= v.level.label %></span>
       <% } %>
 
-    </article>
+      <% if (v.workFormat) { %>
+        <span class="format-tag format-<%= v.workFormat.key %>"><%= v.workFormat.label %></span>
+      <% } %>
+
+      <% if (v.is_new) { %><span class="tag-new">NEW</span><% } %>
+
+      <span class="job-date">
+        <% if (v.daysOld === 0) { %>сьогодні
+        <% } else if (v.daysOld === 1) { %>вчора
+        <% } else if (v.daysOld > 1) { %><%= v.daysOld %> дн. тому
+        <% } else { %><%= v.published_at || '' %><% } %>
+      </span>
+    </div>
+
+    <!-- Рядок 2: Заголовок -->
+    <h2 class="job-title">
+      <a href="<%= v.url %>" target="_blank" rel="noopener"
+         onclick="markViewed(<%= v.id %>)"><%= v.title %></a>
+    </h2>
+
+    <!-- Рядок 3: Компанія + ЗП + Локація -->
+    <div class="job-info">
+      <% if (v.company) { %>
+        <span class="company"><%= v.company %></span>
+      <% } %>
+      <% if (v.salary) { %>
+        <span class="salary"><%= v.salary %></span>
+      <% } %>
+      <% if (v.expYears) { %>
+        <span class="exp-tag"><%= v.expYears %>+ р. досвіду</span>
+      <% } %>
+      <% if (v.location) { %>
+        <span class="location">📍 <%= v.location %></span>
+      <% } %>
+    </div>
+
+    <!-- Рядок 4: Tech теги -->
+    <% if (v.techTags && v.techTags.length > 0) { %>
+    <div class="tech-tags">
+      <% v.techTags.forEach(t => { %><span class="tech-pill"><%= t %></span><% }) %>
+    </div>
+    <% } %>
+
+    <!-- Рядок 5: Опис -->
+    <% if (v.description) { %>
+      <p class="job-desc"><%= v.description %></p>
+    <% } %>
+
+  </article>
   <% }) %>
 </main>
 
-<!-- Пагинация -->
+<!-- Пагінація -->
 <% if (pagination.total > 1) { %>
 <nav class="pagination">
   <% if (pagination.current > 1) { %>
-    <a href="?page=<%= pagination.current - 1 %>&source=<%= filter.source %>&search=<%= filter.search || '' %>&new=<%= filter.onlyNew ? '1' : '' %>">← Назад</a>
+    <a href="?page=<%= pagination.current-1 %>&source=<%= filter.source %>&search=<%= filter.search||'' %>&new=<%= filter.onlyNew?'1':'' %>&level=<%= filter.level||'' %>&remote=<%= filter.remote||'' %>">← Назад</a>
   <% } %>
-
   <span>Стор. <%= pagination.current %> / <%= pagination.total %></span>
-
   <% if (pagination.current < pagination.total) { %>
-    <a href="?page=<%= pagination.current + 1 %>&source=<%= filter.source %>&search=<%= filter.search || '' %>&new=<%= filter.onlyNew ? '1' : '' %>">Вперед →</a>
+    <a href="?page=<%= pagination.current+1 %>&source=<%= filter.source %>&search=<%= filter.search||'' %>&new=<%= filter.onlyNew?'1':'' %>&level=<%= filter.level||'' %>&remote=<%= filter.remote||'' %>">Вперед →</a>
   <% } %>
 </nav>
 <% } %>
 
-<!-- Подвал -->
 <footer>
+  <a href="/analytics">Аналітика компаній</a>
+  &nbsp;·&nbsp;
   <a href="/logs">Логи парсера</a>
   &nbsp;·&nbsp;
-  Оновлення кожні 3 год
+  <span id="sse-status" class="sse-indicator">●</span> live
 </footer>
 
+<!-- ─── JavaScript ──────────────────────────────────────────────── -->
 <script>
-// Пометить вакансию просмотренной (без перезагрузки страницы)
+// ── Переглянуто ────────────────────────────────────────────────
 function markViewed(id) {
-  fetch(`/viewed/${id}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-  });
+  fetch(`/viewed/${id}`, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
   const card = document.getElementById(`job-${id}`);
   if (card) {
     card.classList.remove('is-new');
     card.classList.add('is-viewed');
-    const badge = card.querySelector('.tag-new');
-    if (badge) badge.remove();
+    card.querySelector('.tag-new')?.remove();
   }
 }
 
-// Ручной запуск парсера
+// ── Ручний запуск парсера ──────────────────────────────────────
 function runScraper() {
-  const btn = document.querySelector('.btn-scrape');
-  btn.textContent = '↻ Запускаю...';
+  const btn = document.getElementById('btn-scrape');
   btn.disabled = true;
+  btn.textContent = '⏳ Запускаю...';
 
   fetch('/scrape', { method: 'POST' })
     .then(r => r.json())
-    .then(() => {
-      btn.textContent = '↻ Запущено';
-      setTimeout(() => { btn.textContent = '↻ Оновити'; btn.disabled = false; }, 3000);
+    .then(d => {
+      if (!d.ok) {
+        btn.textContent = '↻ Оновити';
+        btn.disabled = false;
+        showToast(d.message || 'Помилка', false);
+      }
+      // Кнопка залишається заблокованою — SSE відреагує на done
     })
     .catch(() => { btn.textContent = '↻ Оновити'; btn.disabled = false; });
 }
+
+// ── Toast сповіщення ───────────────────────────────────────────
+const toast    = document.getElementById('toast');
+const toastMsg = document.getElementById('toast-msg');
+let toastTimer;
+
+function showToast(msg, isGood = true) {
+  toastMsg.textContent = msg;
+  toast.className = 'toast ' + (isGood ? 'toast-good' : 'toast-info');
+  clearTimeout(toastTimer);
+  // Автоматично ховаємо через 12 секунд
+  toastTimer = setTimeout(closeToast, 12000);
+}
+function closeToast() {
+  toast.classList.add('toast-hidden');
+}
+function reloadPage() {
+  window.location.reload();
+}
+
+// ── SSE — підписка на події сервера ───────────────────────────
+const sseIndicator = document.getElementById('sse-status');
+let   sseRetries   = 0;
+
+function connectSSE() {
+  const es = new EventSource('/events');
+
+  es.addEventListener('init', e => {
+    const d = JSON.parse(e.data);
+    updateBadge(d.newCount);
+    if (d.running) setScraperRunning(true);
+    sseIndicator.style.color = '#16a34a'; // зелений = з'єднано
+    sseRetries = 0;
+  });
+
+  es.addEventListener('scraper-start', () => {
+    setScraperRunning(true);
+  });
+
+  es.addEventListener('scraper-done', e => {
+    const d = JSON.parse(e.data);
+    setScraperRunning(false);
+
+    // Оновлюємо лічильник
+    const totalEl = document.getElementById('stat-total');
+    if (totalEl) totalEl.textContent = d.total;
+    updateBadge(d.newCount);
+
+    // Показуємо toast
+    if (d.newCount > 0) {
+      showToast(`Знайдено ${d.newCount} нових вакансій!`);
+    } else {
+      showToast('Оновлення завершено — нових вакансій немає', false);
+    }
+  });
+
+  es.onerror = () => {
+    sseIndicator.style.color = '#dc2626'; // червоний = відключено
+    es.close();
+    // Автоматичне перепідключення з backoff
+    sseRetries++;
+    const delay = Math.min(1000 * Math.pow(2, sseRetries), 30000);
+    setTimeout(connectSSE, delay);
+  };
+}
+
+function setScraperRunning(running) {
+  const btn    = document.getElementById('btn-scrape');
+  const status = document.getElementById('scraper-status');
+  if (running) {
+    btn.disabled    = true;
+    btn.textContent = '⏳ Парсер запущено...';
+    if (status) { status.textContent = '⏳'; status.title = 'Парсер збирає вакансії'; }
+  } else {
+    btn.disabled    = false;
+    btn.textContent = '↻ Оновити';
+    if (status) { status.textContent = ''; }
+  }
+}
+
+function updateBadge(count) {
+  const badge = document.getElementById('new-badge');
+  if (badge) {
+    badge.textContent = count + ' нових';
+    badge.style.display = count > 0 ? '' : 'none';
+  }
+}
+
+// Підключаємо SSE при завантаженні сторінки
+connectSSE();
 </script>
 
 </body>
