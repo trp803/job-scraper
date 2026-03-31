@@ -43,6 +43,17 @@ db.exec(`
     created_at TEXT DEFAULT (datetime('now'))
   );
 
+  -- Резюме (LaTeX шаблони під конкретні вакансії)
+  CREATE TABLE IF NOT EXISTS resumes (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    vacancy_id  INTEGER REFERENCES vacancies(id) ON DELETE SET NULL,
+    name        TEXT    NOT NULL DEFAULT 'Без назви',
+    latex_code  TEXT    NOT NULL DEFAULT '',
+    is_base     INTEGER DEFAULT 0,   -- 1 = базовий шаблон
+    created_at  TEXT    DEFAULT (datetime('now')),
+    updated_at  TEXT    DEFAULT (datetime('now'))
+  );
+
   -- Трекер відгуків на вакансії
   CREATE TABLE IF NOT EXISTS applications (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -254,6 +265,196 @@ function getVacancyById(id) {
   return db.prepare('SELECT * FROM vacancies WHERE id = ?').get(id);
 }
 
+// ─── Резюме ─────────────────────────────────────────────────────────
+
+// Базовий LaTeX шаблон DevOps-резюме
+const BASE_LATEX = String.raw`\documentclass[letterpaper,11pt]{article}
+
+\usepackage[empty]{fullpage}
+\usepackage{titlesec}
+\usepackage[usenames,dvipsnames]{color}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+\usepackage{fancyhdr}
+\usepackage[english,ukrainian]{babel}
+\usepackage{tabularx}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+
+\addtolength{\oddsidemargin}{-0.5in}
+\addtolength{\evensidemargin}{-0.5in}
+\addtolength{\textwidth}{1in}
+\addtolength{\topmargin}{-.5in}
+\addtolength{\textheight}{1.0in}
+
+\urlstyle{same}
+\raggedbottom
+\raggedright
+\setlength{\tabcolsep}{0in}
+
+\titleformat{\section}{
+  \vspace{-4pt}\scshape\raggedright\large
+}{}{0em}{}[\color{black}\titlerule \vspace{-5pt}]
+
+% ─── Макроси ───────────────────────────────────────────
+\newcommand{\resumeItem}[1]{\item\small{#1\vspace{-2pt}}}
+
+\newcommand{\resumeSubheading}[4]{
+  \vspace{-2pt}\item
+    \begin{tabular*}{0.97\textwidth}[t]{l@{\extracolsep{\fill}}r}
+      \textbf{#1} & #2 \\
+      \textit{\small#3} & \textit{\small #4} \\
+    \end{tabular*}\vspace{-7pt}
+}
+
+\newcommand{\resumeProjectHeading}[2]{
+  \item
+    \begin{tabular*}{0.97\textwidth}{l@{\extracolsep{\fill}}r}
+      \small#1 & #2 \\
+    \end{tabular*}\vspace{-7pt}
+}
+
+\newcommand{\resumeItemListStart}{\begin{itemize}}
+\newcommand{\resumeItemListEnd}{\end{itemize}\vspace{-5pt}}
+\newcommand{\resumeSubHeadingListStart}{\begin{itemize}[leftmargin=0.15in, label={}]}
+\newcommand{\resumeSubHeadingListEnd}{\end{itemize}}
+
+% ═══════════════════════════════════════════════════════
+\begin{document}
+
+% ─── ЗАГОЛОВОК ──────────────────────────────────────────
+\begin{center}
+  \textbf{\Huge \scshape Іван Іваненко} \\ \vspace{1pt}
+  \small +380-XX-XXX-XXXX $|$
+  \href{mailto:ivan@example.com}{ivan@example.com} $|$
+  \href{https://linkedin.com/in/ivan}{linkedin.com/in/ivan} $|$
+  \href{https://github.com/ivan}{github.com/ivan}
+\end{center}
+
+% ─── SUMMARY ─────────────────────────────────────────────
+\section{Summary}
+\small{
+  DevOps / SRE Engineer з X роками досвіду. Спеціалізація: Kubernetes, AWS,
+  Terraform, CI/CD. Досвід побудови та підтримки хмарної інфраструктури
+  для high-load проектів. Готовий до remote-роботи.
+}
+
+% ─── ТЕХНІЧНІ НАВИЧКИ ────────────────────────────────────
+\section{Technical Skills}
+\resumeSubHeadingListStart
+  \small{\item{
+    \textbf{Cloud}{: AWS (EKS, EC2, RDS, S3, VPC, IAM), GCP} \\
+    \textbf{Containers}{: Kubernetes, Docker, Helm, ArgoCD} \\
+    \textbf{IaC}{: Terraform, Ansible} \\
+    \textbf{CI/CD}{: GitLab CI, GitHub Actions, Jenkins} \\
+    \textbf{Monitoring}{: Prometheus, Grafana, Loki, ELK Stack} \\
+    \textbf{Languages}{: Python, Bash, Go} \\
+    \textbf{OS}{: Linux (Ubuntu, Debian, RHEL/CentOS)} \\
+  }}
+\resumeSubHeadingListEnd
+
+% ─── ДОСВІД ──────────────────────────────────────────────
+\section{Experience}
+\resumeSubHeadingListStart
+
+  \resumeSubheading
+    {Senior DevOps Engineer}{Черв. 2022 -- до тепер}
+    {Компанія А}{Remote}
+    \resumeItemListStart
+      \resumeItem{Підтримував Kubernetes кластери (EKS) для 20+ мікросервісів}
+      \resumeItem{Автоматизував інфраструктуру через Terraform + GitOps (ArgoCD)}
+      \resumeItem{Впровадив моніторинг Prometheus/Grafana, знизив MTTR на 40\%}
+      \resumeItem{Налаштував CI/CD pipelines у GitLab CI для 50+ репозиторіїв}
+    \resumeItemListEnd
+
+  \resumeSubheading
+    {DevOps Engineer}{Лют. 2020 -- Черв. 2022}
+    {Компанія Б}{Київ}
+    \resumeItemListStart
+      \resumeItem{Мігрував on-premise інфраструктуру до AWS (EC2, RDS, S3)}
+      \resumeItem{Впровадив Docker та Kubernetes для containerization додатків}
+      \resumeItem{Написав Ansible playbooks для автоматизації налаштування серверів}
+    \resumeItemListEnd
+
+\resumeSubHeadingListEnd
+
+% ─── ОСВІТА ──────────────────────────────────────────────
+\section{Education}
+\resumeSubHeadingListStart
+  \resumeSubheading
+    {КПІ ім. Ігоря Сікорського}{Київ}
+    {Бакалавр, Комп'ютерні науки}{2016 -- 2020}
+\resumeSubHeadingListEnd
+
+% ─── СЕРТИФІКАТИ ─────────────────────────────────────────
+\section{Certifications}
+\resumeSubHeadingListStart
+  \resumeProjectHeading
+    {\textbf{AWS Certified Solutions Architect} -- Associate}{2023}
+  \resumeProjectHeading
+    {\textbf{Certified Kubernetes Administrator (CKA)}}{2022}
+\resumeSubHeadingListEnd
+
+\end{document}
+`;
+
+// Ініціалізуємо базовий шаблон якщо його ще нема
+(function seedBaseTemplate() {
+  const existing = db.prepare('SELECT id FROM resumes WHERE is_base = 1').get();
+  if (!existing) {
+    db.prepare(`INSERT INTO resumes (name, latex_code, is_base) VALUES (?, ?, 1)`)
+      .run('Базовий шаблон', BASE_LATEX);
+  }
+})();
+
+function getResumes() {
+  return db.prepare(`
+    SELECT r.*, v.title as vacancy_title, v.company as vacancy_company
+    FROM resumes r
+    LEFT JOIN vacancies v ON v.id = r.vacancy_id
+    WHERE r.is_base = 0
+    ORDER BY r.updated_at DESC
+  `).all();
+}
+
+function getBaseResume() {
+  return db.prepare('SELECT * FROM resumes WHERE is_base = 1').get();
+}
+
+function getResumeById(id) {
+  return db.prepare(`
+    SELECT r.*, v.title as vacancy_title, v.company as vacancy_company,
+           v.description as vacancy_description, v.url as vacancy_url
+    FROM resumes r
+    LEFT JOIN vacancies v ON v.id = r.vacancy_id
+    WHERE r.id = ?
+  `).get(id);
+}
+
+function upsertResume({ id, vacancy_id, name, latex_code, is_base = 0 }) {
+  if (id) {
+    db.prepare(`
+      UPDATE resumes SET name = ?, latex_code = ?, vacancy_id = ?, updated_at = datetime('now')
+      WHERE id = ?
+    `).run(name, latex_code, vacancy_id || null, id);
+    return id;
+  } else {
+    const result = db.prepare(`
+      INSERT INTO resumes (vacancy_id, name, latex_code, is_base)
+      VALUES (?, ?, ?, ?)
+    `).run(vacancy_id || null, name, latex_code, is_base ? 1 : 0);
+    return result.lastInsertRowid;
+  }
+}
+
+function deleteResume(id) {
+  return db.prepare('DELETE FROM resumes WHERE id = ? AND is_base = 0').run(id);
+}
+
 module.exports = {
   insertVacancy,
   getVacancies,
@@ -270,4 +471,9 @@ module.exports = {
   getApplications,
   getApplicationByVacancy,
   getApplicationStats,
+  getResumes,
+  getBaseResume,
+  getResumeById,
+  upsertResume,
+  deleteResume,
 };

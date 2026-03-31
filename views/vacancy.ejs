@@ -19,6 +19,7 @@
       <a href="/" class="tab-link">Вакансії</a>
       <a href="/analytics" class="tab-link">Аналітика</a>
       <a href="/tracker" class="tab-link">Відгуки</a>
+      <a href="/resume" class="tab-link">Резюме</a>
       <a href="/logs" class="tab-link">Логи</a>
     </nav>
     <button class="btn-dark" id="btn-dark" onclick="toggleDark()" title="Темна тема">🌙</button>
@@ -120,6 +121,9 @@
         ✉ Відгукнутись
       <% } %>
     </button>
+    <a href="/resume/new?vacancy_id=<%= vacancy.id %>" class="btn-open-site" style="background:#7c3aed;color:#fff;border-color:#7c3aed">
+      ✎ Написати резюме
+    </a>
     <a href="<%= vacancy.url %>" target="_blank" rel="noopener" class="btn-open-site">
       Відкрити вакансію ↗
     </a>

@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Редактор резюме — DevOps Jobs</title>
+  <link rel="stylesheet" href="/style.css">
+
+  <!-- CodeMirror 5 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/stex/stex.min.js"></script>
+
+  <script>if(localStorage.getItem('theme')==='dark')document.documentElement.setAttribute('data-theme','dark')</script>
+  <style>
+    /* ─── Layout ─────────────────────────────────────────── */
+    body { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+    main { flex: 1; display: flex; overflow: hidden; }
+
+    /* ─── Toolbar ─────────────────────────────────────────── */
+    .re-toolbar {
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+      padding: .6rem 1.2rem;
+      border-bottom: 1px solid var(--border, #e2e8f0);
+      background: var(--card-bg, #fff);
+      flex-wrap: wrap;
+    }
+    .re-toolbar .re-name {
+      flex: 1;
+      min-width: 180px;
+      max-width: 360px;
+      padding: .38rem .7rem;
+      border: 1px solid var(--border, #cbd5e1);
+      border-radius: 6px;
+      font-size: .9rem;
+      background: var(--input-bg, #f8fafc);
+      color: var(--text, #1e293b);
+    }
+    .re-toolbar .re-name:focus { outline: 2px solid #2563eb; border-color: transparent; }
+    .btn-save {
+      padding: .4rem 1.1rem;
+      border-radius: 6px;
+      font-size: .85rem;
+      font-weight: 600;
+      background: #16a34a;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+    }
+    .btn-save:hover { background: #15803d; }
+    .btn-save:disabled { background: #86efac; cursor: not-allowed; }
+    .btn-overleaf {
+      padding: .4rem 1rem;
+      border-radius: 6px;
+      font-size: .85rem;
+      font-weight: 500;
+      background: #4f9b37;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: .35rem;
+    }
+    .btn-overleaf:hover { background: #3d7a2a; }
+    .btn-copy {
+      padding: .4rem .9rem;
+      border-radius: 6px;
+      font-size: .85rem;
+      background: transparent;
+      color: var(--text-muted, #64748b);
+      border: 1px solid var(--border, #cbd5e1);
+      cursor: pointer;
+    }
+    .btn-copy:hover { background: var(--hover, #f1f5f9); }
+    .btn-back {
+      font-size: .85rem;
+      color: var(--text-muted, #64748b);
+      text-decoration: none;
+      padding: .4rem .5rem;
+    }
+    .btn-back:hover { color: var(--primary, #2563eb); }
+    .save-status {
+      font-size: .8rem;
+      color: #16a34a;
+      opacity: 0;
+      transition: opacity .3s;
+    }
+    .save-status.visible { opacity: 1; }
+    .base-badge {
+      padding: .2rem .6rem;
+      border-radius: 20px;
+      font-size: .75rem;
+      font-weight: 600;
+      background: #fef9c3;
+      color: #854d0e;
+      border: 1px solid #fde68a;
+    }
+
+    /* ─── Split pane ─────────────────────────────────────── */
+    .re-split {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ─── Left: vacancy info ─────────────────────────────── */
+    .re-left {
+      width: 38%;
+      min-width: 260px;
+      max-width: 520px;
+      border-right: 1px solid var(--border, #e2e8f0);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: var(--bg, #f8fafc);
+      resize: horizontal;
+    }
+    .re-left-header {
+      padding: .7rem 1rem;
+      font-weight: 600;
+      font-size: .85rem;
+      color: var(--text-muted, #64748b);
+      border-bottom: 1px solid var(--border, #e2e8f0);
+      background: var(--card-bg, #fff);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .re-left-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1rem;
+    }
+    .vacancy-info-block { margin-bottom: 1rem; }
+    .vacancy-info-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text, #1e293b);
+      margin-bottom: .3rem;
+    }
+    .vacancy-info-meta {
+      font-size: .82rem;
+      color: var(--text-muted, #64748b);
+      margin-bottom: .5rem;
+      display: flex;
+      gap: .6rem;
+      flex-wrap: wrap;
+    }
+    .vacancy-info-desc {
+      font-size: .85rem;
+      line-height: 1.6;
+      color: var(--text, #374151);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .re-vacancy-textarea {
+      width: 100%;
+      height: calc(100% - 2.5rem);
+      border: 1px solid var(--border, #cbd5e1);
+      border-radius: 6px;
+      padding: .7rem;
+      font-size: .85rem;
+      line-height: 1.6;
+      resize: none;
+      background: var(--input-bg, #fff);
+      color: var(--text, #1e293b);
+      font-family: inherit;
+    }
+    .re-vacancy-textarea:focus { outline: 2px solid #2563eb; border-color: transparent; }
+    .no-vacancy-hint {
+      font-size: .85rem;
+      color: var(--text-muted, #94a3b8);
+      margin-bottom: .6rem;
+    }
+    .vacancy-link {
+      font-size: .8rem;
+      color: var(--primary, #2563eb);
+    }
+
+    /* ─── Right: LaTeX editor ────────────────────────────── */
+    .re-right {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .re-right-header {
+      padding: .5rem 1rem;
+      font-size: .82rem;
+      color: var(--text-muted, #64748b);
+      border-bottom: 1px solid var(--border, #e2e8f0);
+      background: var(--card-bg, #fff);
+      display: flex;
+      align-items: center;
+      gap: .8rem;
+    }
+    .re-editor-wrap {
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+    }
+    /* CodeMirror fill container */
+    .re-editor-wrap .CodeMirror {
+      height: 100%;
+      font-size: 13px;
+      font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+      line-height: 1.5;
+    }
+
+    /* ─── Overleaf form (hidden, submit via JS) ──────────── */
+    #overleaf-form { display: none; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo">
+      <span class="logo-icon">⚙</span>
+      <span>DevOps Jobs</span>
+    </div>
+    <nav class="tab-nav">
+      <a href="/" class="tab-link">Вакансії</a>
+      <a href="/analytics" class="tab-link">Аналітика</a>
+      <a href="/tracker" class="tab-link">Відгуки</a>
+      <a href="/resume" class="tab-link active">Резюме</a>
+      <a href="/logs" class="tab-link">Логи</a>
+    </nav>
+    <button class="btn-dark" id="btn-dark" onclick="toggleDark()" title="Темна тема">🌙</button>
+    <form method="POST" action="/logout" style="margin:0">
+      <button type="submit" class="btn-logout" title="Вийти">↪ Вийти</button>
+    </form>
+  </div>
+</header>
+
+<!-- Toolbar -->
+<div class="re-toolbar">
+  <a href="/resume" class="btn-back">← Назад</a>
+
+  <% if (isBase) { %>
+    <span class="base-badge">Базовий шаблон</span>
+    <input id="re-name" type="text" class="re-name" value="<%= resume.name %>" disabled style="opacity:.5">
+  <% } else { %>
+    <input id="re-name" type="text" class="re-name"
+      placeholder="Назва резюме..."
+      value="<%= resume.name || '' %>">
+  <% } %>
+
+  <button class="btn-save" id="btn-save" onclick="saveResume()">Зберегти</button>
+  <span class="save-status" id="save-status">Збережено!</span>
+
+  <button class="btn-copy" onclick="copyLatex()" title="Копіювати LaTeX код">Копіювати</button>
+  <button class="btn-overleaf" onclick="openOverleaf()" title="Скомпілювати в Overleaf">
+    <svg width="14" height="14" viewBox="0 0 50 50" fill="currentColor"><path d="M25 2C12.3 2 2 12.3 2 25s10.3 23 23 23 23-10.3 23-23S37.7 2 25 2zm0 4c10.5 0 19 8.5 19 19s-8.5 19-19 19S6 35.5 6 25 14.5 6 25 6zm-6 8v22l16-11-16-11z"/></svg>
+    Overleaf
+  </button>
+</div>
+
+<!-- Hidden Overleaf form -->
+<form id="overleaf-form" action="https://www.overleaf.com/docs" method="post" target="_blank">
+  <input type="hidden" name="snip" id="overleaf-snip">
+  <input type="hidden" name="snip_name" id="overleaf-snip-name" value="resume.tex">
+</form>
+
+<!-- Split view -->
+<main>
+  <div class="re-split">
+
+    <!-- Left: vacancy / notes -->
+    <div class="re-left">
+      <div class="re-left-header">
+        <span>Опис вакансії</span>
+        <% if (vacancy && vacancy.url) { %>
+          <a href="<%= vacancy.url %>" target="_blank" class="vacancy-link">відкрити ↗</a>
+        <% } %>
+      </div>
+      <div class="re-left-body">
+        <% if (vacancy) { %>
+          <div class="vacancy-info-block">
+            <div class="vacancy-info-title"><%= vacancy.title %></div>
+            <div class="vacancy-info-meta">
+              <% if (vacancy.company) { %><span><%= vacancy.company %></span><% } %>
+              <% if (vacancy.salary) { %><span class="salary"><%= vacancy.salary %></span><% } %>
+              <% if (vacancy.location) { %><span>📍 <%= vacancy.location %></span><% } %>
+              <span class="source-tag source-<%= vacancy.source.replace(/\./g,'-') %>" style="font-size:.75rem;padding:.1rem .4rem"><%= vacancy.source %></span>
+            </div>
+          </div>
+          <% if (vacancy.description) { %>
+            <div class="vacancy-info-desc"><%= vacancy.description %></div>
+          <% } else { %>
+            <p class="no-vacancy-hint">Детальний опис недоступний. Відкрий вакансію на сайті роботодавця.</p>
+          <% } %>
+        <% } else { %>
+          <p class="no-vacancy-hint">Встав опис вакансії сюди для зручності при редагуванні резюме:</p>
+          <textarea class="re-vacancy-textarea" id="vacancy-paste"
+            placeholder="Вставте текст вакансії тут...
+Вимоги, технології, обов'язки — все що потрібно врахувати в резюме."></textarea>
+        <% } %>
+      </div>
+    </div>
+
+    <!-- Right: CodeMirror LaTeX editor -->
+    <div class="re-right">
+      <div class="re-right-header">
+        <span>LaTeX редактор</span>
+        <span style="margin-left:auto;font-size:.78rem">Ctrl+S — зберегти &nbsp;|&nbsp; Ctrl+/ — коментар</span>
+      </div>
+      <div class="re-editor-wrap" id="editor-wrap"></div>
+    </div>
+
+  </div>
+</main>
+
+<script>
+// ─── Дані з сервера ───────────────────────────────────────────────
+const RESUME_ID      = <%- JSON.stringify(resume.id) %>;
+const VACANCY_ID     = <%- JSON.stringify(resume.vacancy_id || null) %>;
+const IS_BASE        = <%- isBase ? 'true' : 'false' %>;
+const INITIAL_CODE   = <%- JSON.stringify(resume.latex_code || '') %>;
+
+// ─── CodeMirror ───────────────────────────────────────────────────
+const isDark = localStorage.getItem('theme') === 'dark';
+
+const editor = CodeMirror(document.getElementById('editor-wrap'), {
+  value:        INITIAL_CODE,
+  mode:         'stex',
+  theme:        isDark ? 'dracula' : 'default',
+  lineNumbers:  true,
+  lineWrapping: true,
+  tabSize:      2,
+  indentWithTabs: false,
+  autofocus:    true,
+  extraKeys: {
+    'Ctrl-S': saveResume,
+    'Cmd-S':  saveResume,
+    'Ctrl-/': cm => cm.toggleComment ? cm.toggleComment() : undefined,
+  },
+});
+
+// ─── Збереження ───────────────────────────────────────────────────
+let currentId = RESUME_ID;
+
+function saveResume() {
+  const btn    = document.getElementById('btn-save');
+  const status = document.getElementById('save-status');
+  const name   = document.getElementById('re-name').value.trim() || 'Без назви';
+  const code   = editor.getValue();
+
+  btn.disabled = true;
+  btn.textContent = 'Збереження...';
+
+  const url  = IS_BASE ? '/resume/save-base' : '/resume/save';
+  const body = IS_BASE
+    ? { latex_code: code }
+    : { id: currentId, vacancy_id: VACANCY_ID, name, latex_code: code };
+
+  fetch(url, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify(body),
+  })
+    .then(r => r.json())
+    .then(d => {
+      btn.disabled    = false;
+      btn.textContent = 'Зберегти';
+      if (d.ok) {
+        if (!currentId && d.id) {
+          currentId = d.id;
+          history.replaceState({}, '', '/resume/edit/' + currentId);
+        }
+        status.classList.add('visible');
+        setTimeout(() => status.classList.remove('visible'), 2000);
+      } else {
+        alert('Помилка збереження: ' + (d.error || ''));
+      }
+    })
+    .catch(() => {
+      btn.disabled    = false;
+      btn.textContent = 'Зберегти';
+      alert('Мережева помилка');
+    });
+}
+
+// ─── Копіювання LaTeX ─────────────────────────────────────────────
+function copyLatex() {
+  navigator.clipboard.writeText(editor.getValue()).then(() => {
+    const btn = document.querySelector('.btn-copy');
+    const orig = btn.textContent;
+    btn.textContent = 'Скопійовано!';
+    setTimeout(() => { btn.textContent = orig; }, 1500);
+  });
+}
+
+// ─── Відкрити в Overleaf ──────────────────────────────────────────
+function openOverleaf() {
+  document.getElementById('overleaf-snip').value = editor.getValue();
+  document.getElementById('overleaf-snip-name').value =
+    (document.getElementById('re-name').value.trim() || 'resume') + '.tex';
+  document.getElementById('overleaf-form').submit();
+}
+
+// ─── Темна тема ───────────────────────────────────────────────────
+function toggleDark() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const next   = isDark ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('theme', next);
+  document.getElementById('btn-dark').textContent = next === 'dark' ? '☀' : '🌙';
+  editor.setOption('theme', next === 'dark' ? 'dracula' : 'default');
+}
+(function() {
+  const saved = localStorage.getItem('theme') || 'light';
+  if (saved === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    const btn = document.getElementById('btn-dark');
+    if (btn) btn.textContent = '☀';
+  }
+})();
+</script>
+
+</body>
+</html>

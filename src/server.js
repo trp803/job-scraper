@@ -431,6 +431,73 @@ app.get('/api/tracker/check/:vacancyId', (req, res) => {
   res.json({ ok: true, application: app || null });
 });
 
+// ─── Редактор резюме ──────────────────────────────────────────────
+
+app.get('/resume', (req, res) => {
+  const resumes  = db.getResumes();
+  const base     = db.getBaseResume();
+  res.render('resume-list', { resumes, base });
+});
+
+// Новий чернетка (опційно прив'язаний до вакансії)
+app.get('/resume/new', (req, res) => {
+  const vacancyId = parseInt(req.query.vacancy_id) || null;
+  const base      = db.getBaseResume();
+  let vacancy     = null;
+  if (vacancyId) {
+    vacancy = db.getVacancyById(vacancyId);
+  }
+  const defaultName = vacancy
+    ? `${vacancy.title}${vacancy.company ? ' @ ' + vacancy.company : ''}`
+    : 'Нове резюме';
+  res.render('resume-editor', {
+    resume: { id: null, name: defaultName, latex_code: base?.latex_code || '', vacancy_id: vacancyId },
+    vacancy,
+    isBase: false,
+  });
+});
+
+// Редагування існуючого резюме (або базового шаблону)
+app.get('/resume/edit/:id', (req, res) => {
+  const id     = parseInt(req.params.id);
+  const resume = db.getResumeById(id);
+  if (!resume) return res.status(404).send('Резюме не знайдено');
+  let vacancy = null;
+  if (resume.vacancy_id) vacancy = db.getVacancyById(resume.vacancy_id);
+  res.render('resume-editor', { resume, vacancy, isBase: resume.is_base === 1 });
+});
+
+// Збереження (AJAX JSON)
+app.post('/resume/save', (req, res) => {
+  const { id, vacancy_id, name, latex_code } = req.body;
+  if (!latex_code) return res.status(400).json({ ok: false, error: 'latex_code required' });
+  const savedId = db.upsertResume({
+    id:         id ? parseInt(id) : null,
+    vacancy_id: vacancy_id ? parseInt(vacancy_id) : null,
+    name:       name || 'Без назви',
+    latex_code,
+  });
+  res.json({ ok: true, id: savedId });
+});
+
+// Збереження базового шаблону
+app.post('/resume/save-base', (req, res) => {
+  const { latex_code } = req.body;
+  if (!latex_code) return res.status(400).json({ ok: false, error: 'latex_code required' });
+  const base = db.getBaseResume();
+  db.upsertResume({ id: base.id, name: base.name, latex_code, is_base: 1 });
+  res.json({ ok: true });
+});
+
+// Видалення
+app.post('/resume/delete/:id', (req, res) => {
+  db.deleteResume(parseInt(req.params.id));
+  if (req.headers['content-type']?.includes('application/json')) {
+    return res.json({ ok: true });
+  }
+  res.redirect('/resume');
+});
+
 // ─── Health check ─────────────────────────────────────────────────
 
 app.get('/health', (req, res) => res.json({ ok: true }));

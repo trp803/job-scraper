@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Резюме — DevOps Jobs</title>
+  <link rel="stylesheet" href="/style.css">
+  <script>if(localStorage.getItem('theme')==='dark')document.documentElement.setAttribute('data-theme','dark')</script>
+  <style>
+    .resume-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 1rem;
+      padding: 1.5rem 2rem;
+    }
+    .resume-card {
+      background: var(--card-bg, #fff);
+      border: 1px solid var(--border, #e2e8f0);
+      border-radius: 10px;
+      padding: 1.2rem 1.4rem;
+      display: flex;
+      flex-direction: column;
+      gap: .5rem;
+      transition: box-shadow .15s;
+    }
+    .resume-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.08); }
+    .resume-card-title {
+      font-weight: 600;
+      font-size: 1rem;
+      color: var(--text, #1e293b);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .resume-card-vacancy {
+      font-size: .82rem;
+      color: var(--text-muted, #64748b);
+    }
+    .resume-card-date {
+      font-size: .78rem;
+      color: var(--text-muted, #94a3b8);
+    }
+    .resume-card-actions {
+      display: flex;
+      gap: .5rem;
+      margin-top: .4rem;
+    }
+    .btn-edit {
+      padding: .35rem .9rem;
+      border-radius: 6px;
+      font-size: .82rem;
+      font-weight: 500;
+      background: var(--primary, #2563eb);
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+    }
+    .btn-edit:hover { background: #1d4ed8; }
+    .btn-del {
+      padding: .35rem .9rem;
+      border-radius: 6px;
+      font-size: .82rem;
+      font-weight: 500;
+      background: transparent;
+      color: var(--danger, #dc2626);
+      border: 1px solid var(--danger, #dc2626);
+      cursor: pointer;
+    }
+    .btn-del:hover { background: #fef2f2; }
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.5rem 2rem .5rem;
+    }
+    .section-header h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text, #1e293b);
+    }
+    .btn-new {
+      padding: .45rem 1.1rem;
+      border-radius: 7px;
+      font-size: .85rem;
+      font-weight: 600;
+      background: var(--primary, #2563eb);
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .btn-new:hover { background: #1d4ed8; }
+    .base-card {
+      margin: 0 2rem 1rem;
+      background: var(--card-bg, #fff);
+      border: 1px solid var(--border, #e2e8f0);
+      border-radius: 10px;
+      padding: 1rem 1.4rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+    .base-card-label {
+      font-size: .9rem;
+      color: var(--text-muted, #64748b);
+    }
+    .base-card-label b { color: var(--text, #1e293b); }
+    .empty-state {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: var(--text-muted, #94a3b8);
+      font-size: .95rem;
+    }
+    .resume-linked-tag {
+      display: inline-block;
+      padding: .15rem .5rem;
+      border-radius: 4px;
+      font-size: .75rem;
+      background: #eff6ff;
+      color: #2563eb;
+      border: 1px solid #bfdbfe;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo">
+      <span class="logo-icon">⚙</span>
+      <span>DevOps Jobs</span>
+    </div>
+    <nav class="tab-nav">
+      <a href="/" class="tab-link">Вакансії</a>
+      <a href="/analytics" class="tab-link">Аналітика</a>
+      <a href="/tracker" class="tab-link">Відгуки</a>
+      <a href="/resume" class="tab-link active">Резюме</a>
+      <a href="/logs" class="tab-link">Логи</a>
+    </nav>
+    <div class="stats">
+      <span>Резюме: <b><%= resumes.length %></b></span>
+    </div>
+    <button class="btn-dark" id="btn-dark" onclick="toggleDark()" title="Темна тема">🌙</button>
+    <form method="POST" action="/logout" style="margin:0">
+      <button type="submit" class="btn-logout" title="Вийти">↪ Вийти</button>
+    </form>
+  </div>
+</header>
+
+<main>
+
+  <!-- Базовий шаблон -->
+  <% if (base) { %>
+  <div class="base-card">
+    <div class="base-card-label">
+      <b>Базовий шаблон</b> — стартова точка для всіх нових резюме.
+      Відредагуй його під себе один раз.
+    </div>
+    <a href="/resume/edit/<%= base.id %>" class="btn-edit">Редагувати шаблон</a>
+  </div>
+  <% } %>
+
+  <!-- Список збережених резюме -->
+  <div class="section-header">
+    <h2>Збережені резюме (<%= resumes.length %>)</h2>
+    <a href="/resume/new" class="btn-new">+ Нове резюме</a>
+  </div>
+
+  <% if (resumes.length === 0) { %>
+    <div class="empty-state">
+      Поки що немає збережених резюме.<br>
+      Натисни «+ Нове резюме» або відкрий будь-яку вакансію і натисни «Редагувати резюме».
+    </div>
+  <% } else { %>
+  <div class="resume-grid">
+    <% resumes.forEach(r => { %>
+    <div class="resume-card">
+      <div class="resume-card-title" title="<%= r.name %>"><%= r.name %></div>
+      <% if (r.vacancy_title) { %>
+        <div class="resume-card-vacancy">
+          <span class="resume-linked-tag">вакансія</span>
+          <%= r.vacancy_title %><% if (r.vacancy_company) { %> @ <%= r.vacancy_company %><% } %>
+        </div>
+      <% } %>
+      <div class="resume-card-date">
+        Змінено: <%= r.updated_at?.slice(0, 16).replace('T', ' ') %>
+      </div>
+      <div class="resume-card-actions">
+        <a href="/resume/edit/<%= r.id %>" class="btn-edit">Редагувати</a>
+        <button class="btn-del" onclick="deleteResume(<%= r.id %>, this)">Видалити</button>
+      </div>
+    </div>
+    <% }) %>
+  </div>
+  <% } %>
+
+</main>
+
+<script>
+function deleteResume(id, btn) {
+  if (!confirm('Видалити резюме?')) return;
+  btn.disabled = true;
+  fetch('/resume/delete/' + id, { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+    .then(r => r.json())
+    .then(d => {
+      if (d.ok) btn.closest('.resume-card').remove();
+      else { btn.disabled = false; alert('Помилка видалення'); }
+    });
+}
+
+function toggleDark() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const next = isDark ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('theme', next);
+  document.getElementById('btn-dark').textContent = next === 'dark' ? '☀' : '🌙';
+}
+(function() {
+  const saved = localStorage.getItem('theme') || 'light';
+  if (saved === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    const btn = document.getElementById('btn-dark');
+    if (btn) btn.textContent = '☀';
+  }
+})();
+</script>
+
+</body>
+</html>
