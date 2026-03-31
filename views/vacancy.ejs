@@ -142,6 +142,23 @@
     </div>
     <% } %>
 
+    <!-- AI Аналіз вакансії -->
+    <% if (hasAI) { %>
+    <div class="vd-prep">
+      <button class="vd-prep-toggle" onclick="toggleAiAnalysis(this)">
+        <span>✦ AI Аналіз вакансії</span>
+        <span id="ai-chevron">▼</span>
+      </button>
+      <div class="vd-prep-body" id="ai-body">
+        <div style="padding:.75rem 0 .5rem;display:flex;align-items:center;gap:.75rem">
+          <button class="cover-btn-regen" id="btn-analyze" onclick="analyzeVacancy()">Аналізувати</button>
+          <span id="ai-loading" style="display:none;color:var(--text-muted);font-size:.85rem">Claude аналізує...</span>
+        </div>
+        <div id="ai-result"></div>
+      </div>
+    </div>
+    <% } %>
+
     <!-- Сопровідній лист -->
     <div class="vd-cover">
       <button class="vd-prep-toggle" onclick="toggleCover(this)">
@@ -185,9 +202,18 @@
         <!-- Редактор листа -->
         <textarea class="cover-textarea" id="cover-output" spellcheck="true"></textarea>
 
+        <!-- Збережений лист -->
+        <% if (coverLetter) { %>
+        <div class="cover-saved-notice" id="cover-saved-notice">
+          <span>Є збережений лист від <%= new Date().toLocaleDateString('uk') %></span>
+          <button onclick="loadSavedLetter()" class="cover-btn-load">Завантажити</button>
+        </div>
+        <% } %>
+
         <!-- Дії -->
         <div class="cover-actions">
           <button class="cover-btn-copy" onclick="copyCover()">Копіювати</button>
+          <button class="cover-btn-save" onclick="saveCoverLetter()" title="Зберегти в базу">Зберегти</button>
           <button class="cover-btn-regen" onclick="regenerate()">Оновити</button>
           <span class="cover-copy-status" id="cover-status"></span>
           <span style="margin-left:auto;font-size:.78rem;color:var(--text-muted)">
@@ -657,6 +683,115 @@ function copyCover() {
     status.textContent = 'Скопійовано!';
     setTimeout(() => { status.textContent = ''; }, 2000);
   });
+}
+
+// ─── AI Аналіз вакансії ──────────────────────────────────────────
+const VACANCY_TEXT = [
+  <%- JSON.stringify(vacancy.title || '') %>,
+  <%- JSON.stringify(vacancy.company || '') %>,
+  <%- JSON.stringify(vacancy.description || '') %>,
+].filter(Boolean).join('\n\n');
+
+const STATUS_LABELS_AI = {
+  applied: 'Відгукнулись', screening: 'Скринінг', interview: "Інтерв'ю",
+  offer: 'Оффер', rejected: 'Відмовили', withdrawn: 'Відкликали',
+};
+
+function toggleAiAnalysis(btn) {
+  const body    = document.getElementById('ai-body');
+  const chevron = document.getElementById('ai-chevron');
+  const isOpen  = body.classList.toggle('open');
+  chevron.textContent = isOpen ? '▲' : '▼';
+}
+
+function analyzeVacancy() {
+  const btn     = document.getElementById('btn-analyze');
+  const loading = document.getElementById('ai-loading');
+  const result  = document.getElementById('ai-result');
+
+  btn.disabled    = true;
+  loading.style.display = 'inline';
+  result.innerHTML = '';
+
+  fetch('/ai/analyze', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ vacancy_text: VACANCY_TEXT }),
+  })
+    .then(r => r.json())
+    .then(d => {
+      btn.disabled = false;
+      loading.style.display = 'none';
+      if (!d.ok) { result.innerHTML = `<p style="color:var(--danger)">${d.error}</p>`; return; }
+      result.innerHTML = renderAiResult(d.data);
+    })
+    .catch(err => {
+      btn.disabled = false;
+      loading.style.display = 'none';
+      result.innerHTML = `<p style="color:var(--danger)">Помилка: ${err.message}</p>`;
+    });
+}
+
+function renderAiResult(data) {
+  const section = (title, items, cls) => {
+    if (!items || items.length === 0) return '';
+    return `<div class="ai-section">
+      <div class="ai-section-title">${title}</div>
+      <ul class="ai-list ai-list-${cls}">${items.map(i => `<li>${i}</li>`).join('')}</ul>
+    </div>`;
+  };
+
+  return `
+    <div class="ai-result-wrap">
+      ${data.summary ? `<p class="ai-summary">${data.summary}</p>` : ''}
+      ${section('Must have', data.must_have, 'must')}
+      ${section('Nice to have', data.nice_to_have, 'nice')}
+      ${data.red_flags?.length ? section('Зверни увагу', data.red_flags, 'red') : ''}
+      ${section('Питання на інтерв\'ю', data.questions, 'q')}
+      ${data.salary_comment ? `<p class="ai-salary-note">💰 ${data.salary_comment}</p>` : ''}
+    </div>`;
+}
+
+// ─── Cover letter: збереження та завантаження ─────────────────────
+const SAVED_COVER = <%- JSON.stringify(coverLetter || '') %>;
+
+function saveCoverLetter() {
+  const text   = document.getElementById('cover-output')?.value?.trim();
+  const status = document.getElementById('cover-status');
+  if (!text) { status.textContent = 'Нічого зберігати'; setTimeout(() => { status.textContent = ''; }, 2000); return; }
+
+  fetch('/cover-letter/save', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ vacancy_id: VACANCY_ID, text }),
+  })
+    .then(r => r.json())
+    .then(d => {
+      status.textContent = d.ok ? 'Збережено!' : 'Помилка';
+      setTimeout(() => { status.textContent = ''; }, 2000);
+      // Показати notice якщо його ще нема
+      const notice = document.getElementById('cover-saved-notice');
+      if (d.ok && !notice) {
+        const actions = document.querySelector('.cover-actions');
+        if (actions) {
+          const div = document.createElement('div');
+          div.className = 'cover-saved-notice';
+          div.id = 'cover-saved-notice';
+          div.innerHTML = '<span>Лист збережено</span>';
+          actions.parentNode.insertBefore(div, actions);
+        }
+      }
+    })
+    .catch(() => { status.textContent = 'Помилка збереження'; setTimeout(() => { status.textContent = ''; }, 2000); });
+}
+
+function loadSavedLetter() {
+  const out = document.getElementById('cover-output');
+  if (out && SAVED_COVER) {
+    out.value = SAVED_COVER;
+    const notice = document.getElementById('cover-saved-notice');
+    if (notice) notice.style.display = 'none';
+  }
 }
 
 // ─── Dark mode ────────────────────────────────────────────────────

@@ -200,6 +200,12 @@
       <button onclick="closeModal()" class="btn-cancel-modal">Скасувати</button>
       <button onclick="saveModal()" class="btn-save-modal">Зберегти</button>
     </div>
+
+    <!-- Історія статусів -->
+    <div id="m-history" style="margin-top:1rem;display:none">
+      <div class="modal-label" style="margin-bottom:.4rem">Історія статусів</div>
+      <div id="m-history-list" class="app-history-list"></div>
+    </div>
   </div>
 </div>
 
@@ -215,29 +221,40 @@ const modal = document.getElementById('edit-modal');
 
 function openEditModal(vacancyId) {
   document.getElementById('m-vacancy-id').value = vacancyId;
-  // знаходимо дані з картки на сторінці
-  const card  = document.getElementById('tcard-' + vacancyId);
-  const notes = card?.querySelector('.tcard-notes')?.textContent?.trim() || '';
-  const next  = card?.querySelector('.next-step-label')
-                  ? card.querySelector('.tcard-next span:nth-child(2)')?.textContent?.trim() || '' : '';
-  const nextD = card?.querySelector('.next-date')?.textContent?.trim() || '';
+  // Читаємо актуальні дані з API
+  Promise.all([
+    fetch('/api/tracker/check/' + vacancyId).then(r => r.json()),
+    fetch('/api/tracker/history/' + vacancyId).then(r => r.json()),
+  ]).then(([checkData, histData]) => {
+    const a = checkData.application || {};
+    document.getElementById('m-status').value    = a.status    || 'applied';
+    document.getElementById('m-notes').value     = a.notes     || '';
+    document.getElementById('m-next-step').value = a.next_step || '';
+    document.getElementById('m-next-date').value = a.next_date || '';
 
-  // Статус із класу badge
-  const badge    = card?.querySelector('.tcard-status');
-  const stClass  = badge ? [...badge.classList].find(c => c.startsWith('st-') && c !== 'st-applied'
-                     && c !== 'st-screening' && c !== 'st-interview' && c !== 'st-offer'
-                     && c !== 'st-rejected' && c !== 'st-withdrawn' ? false : true) : null;
-  // fallback — читаємо з data
-  fetch('/api/tracker/check/' + vacancyId)
-    .then(r => r.json())
-    .then(d => {
-      const a = d.application || {};
-      document.getElementById('m-status').value    = a.status    || 'applied';
-      document.getElementById('m-notes').value     = a.notes     || '';
-      document.getElementById('m-next-step').value = a.next_step || '';
-      document.getElementById('m-next-date').value = a.next_date || '';
-      modal.classList.remove('modal-hidden');
-    });
+    // Рендеримо історію
+    const history = histData.history || [];
+    const histWrap = document.getElementById('m-history');
+    const histList = document.getElementById('m-history-list');
+    if (history.length > 0) {
+      histList.innerHTML = history.map(h => {
+        const arrow = h.from_status ? `${statusLabel(h.from_status)} → ${statusLabel(h.to_status)}` : statusLabel(h.to_status);
+        const date  = h.changed_at?.slice(0, 16).replace('T', ' ') || '';
+        const note  = h.note ? ` <span class="hist-note">(${h.note})</span>` : '';
+        return `<div class="hist-item"><span class="hist-arrow">${arrow}</span>${note}<span class="hist-date">${date}</span></div>`;
+      }).join('');
+      histWrap.style.display = 'block';
+    } else {
+      histWrap.style.display = 'none';
+    }
+
+    modal.classList.remove('modal-hidden');
+  });
+}
+
+function statusLabel(s) {
+  const map = { applied: 'Відгукнулись', screening: 'Скринінг', interview: "Інтерв'ю", offer: 'Оффер', rejected: 'Відмовили', withdrawn: 'Відкликали' };
+  return map[s] || s;
 }
 
 function closeModal() {

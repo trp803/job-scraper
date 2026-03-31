@@ -75,6 +75,23 @@ db.exec(`
     next_date   TEXT,             -- дата наступного кроку (ISO date)
     UNIQUE(vacancy_id)            -- одна вакансія — один відгук
   );
+
+  -- Історія зміни статусів відгуку
+  CREATE TABLE IF NOT EXISTS application_history (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    vacancy_id  INTEGER NOT NULL REFERENCES vacancies(id) ON DELETE CASCADE,
+    from_status TEXT,             -- null = перший відгук
+    to_status   TEXT    NOT NULL,
+    note        TEXT,
+    changed_at  TEXT    DEFAULT (datetime('now'))
+  );
+
+  -- Збережені супровідні листи (один на вакансію)
+  CREATE TABLE IF NOT EXISTS cover_letters (
+    vacancy_id  INTEGER PRIMARY KEY REFERENCES vacancies(id) ON DELETE CASCADE,
+    text        TEXT    NOT NULL DEFAULT '',
+    updated_at  TEXT    DEFAULT (datetime('now'))
+  );
 `);
 
 // ─── Вакансии ───────────────────────────────────────────
@@ -197,8 +214,23 @@ const _upsertApp = db.prepare(`
     updated_at = datetime('now')
 `);
 
+const _insertHistory = db.prepare(`
+  INSERT INTO application_history (vacancy_id, from_status, to_status, note)
+  VALUES (@vacancy_id, @from_status, @to_status, @note)
+`);
+
+const _upsertWithHistory = db.transaction((params) => {
+  const existing = db.prepare('SELECT status FROM applications WHERE vacancy_id = ?').get(params.vacancy_id);
+  _upsertApp.run(params);
+  if (!existing) {
+    _insertHistory.run({ vacancy_id: params.vacancy_id, from_status: null, to_status: params.status, note: 'Перший відгук' });
+  } else if (existing.status !== params.status) {
+    _insertHistory.run({ vacancy_id: params.vacancy_id, from_status: existing.status, to_status: params.status, note: null });
+  }
+});
+
 function upsertApplication(params) {
-  return _upsertApp.run(params);
+  return _upsertWithHistory(params);
 }
 
 const _deleteApp = db.prepare(`DELETE FROM applications WHERE vacancy_id = ?`);
@@ -249,6 +281,25 @@ function getApplicationByVacancy(vacancyId) {
   return db.prepare(`SELECT * FROM applications WHERE vacancy_id = ?`).get(vacancyId);
 }
 
+function getApplicationHistory(vacancyId) {
+  return db.prepare(`
+    SELECT * FROM application_history WHERE vacancy_id = ? ORDER BY changed_at ASC
+  `).all(vacancyId);
+}
+
+function saveCoverLetter(vacancyId, text) {
+  db.prepare(`
+    INSERT INTO cover_letters (vacancy_id, text, updated_at)
+    VALUES (?, ?, datetime('now'))
+    ON CONFLICT(vacancy_id) DO UPDATE SET text = excluded.text, updated_at = datetime('now')
+  `).run(vacancyId, text || '');
+}
+
+function getCoverLetter(vacancyId) {
+  const row = db.prepare('SELECT text FROM cover_letters WHERE vacancy_id = ?').get(vacancyId);
+  return row ? row.text : '';
+}
+
 function getApplicationStats() {
   return db.prepare(`
     SELECT status, COUNT(*) as cnt FROM applications GROUP BY status
@@ -264,13 +315,14 @@ function getVacancyById(id) {
 // Базовий LaTeX шаблон DevOps-резюме
 const BASE_LATEX = String.raw`\documentclass[letterpaper,11pt]{article}
 
+\usepackage[utf8]{inputenc}
+\usepackage[T2A]{fontenc}
 \usepackage[empty]{fullpage}
 \usepackage{titlesec}
 \usepackage[usenames,dvipsnames]{color}
 \usepackage{enumitem}
 \usepackage[hidelinks]{hyperref}
 \usepackage{fancyhdr}
-\usepackage[english,ukrainian]{babel}
 \usepackage{tabularx}
 
 \pagestyle{fancy}
@@ -396,12 +448,15 @@ const BASE_LATEX = String.raw`\documentclass[letterpaper,11pt]{article}
 \end{document}
 `;
 
-// Ініціалізуємо базовий шаблон якщо його ще нема
+// Ініціалізуємо базовий шаблон якщо його ще нема; патчимо якщо нема inputenc
 (function seedBaseTemplate() {
-  const existing = db.prepare('SELECT id FROM resumes WHERE is_base = 1').get();
+  const existing = db.prepare('SELECT id, latex_code FROM resumes WHERE is_base = 1').get();
   if (!existing) {
     db.prepare(`INSERT INTO resumes (name, latex_code, is_base) VALUES (?, ?, 1)`)
       .run('Базовий шаблон', BASE_LATEX);
+  } else if (!existing.latex_code.includes('inputenc')) {
+    db.prepare(`UPDATE resumes SET latex_code = ? WHERE id = ?`)
+      .run(BASE_LATEX, existing.id);
   }
 })();
 
@@ -464,7 +519,10 @@ module.exports = {
   deleteApplication,
   getApplications,
   getApplicationByVacancy,
+  getApplicationHistory,
   getApplicationStats,
+  saveCoverLetter,
+  getCoverLetter,
   getVacancyNote,
   saveVacancyNote,
   getResumes,

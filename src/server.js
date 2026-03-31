@@ -1,5 +1,6 @@
 // server.js — Express веб-сервер
 
+const Anthropic      = require('@anthropic-ai/sdk');
 const express        = require('express');
 const path           = require('path');
 const fs             = require('fs');
@@ -279,7 +280,11 @@ app.get('/vacancy/:id', (req, res) => {
   const nameMatch   = baseTex.match(/\\textbf\{\\Huge\s*\\scshape\s+([^}]+)\}/) ||
                       baseTex.match(/\\name\{([^}]+)\}/);
   const coverName   = nameMatch ? nameMatch[1].trim() : '';
-  res.render('vacancy', { vacancy: enriched, application: application || null, note, scoreData, coverName });
+  const coverLetter = db.getCoverLetter(id);
+  res.render('vacancy', {
+    vacancy: enriched, application: application || null, note, scoreData, coverName,
+    coverLetter, hasAI: !!process.env.ANTHROPIC_API_KEY,
+  });
 });
 
 // ─── Збереження нотатки до вакансії ──────────────────────────────
@@ -542,7 +547,15 @@ app.post('/resume/compile', (req, res) => {
   const texFile = path.join(tmpDir, 'resume.tex');
   const pdfFile = path.join(tmpDir, 'resume.pdf');
 
-  fs.writeFileSync(texFile, latex_code, 'utf8');
+  // Якщо старий шаблон без inputenc — автоматично додаємо Cyrillic-сумісні пакети
+  let code = latex_code;
+  // Видаляємо зламаний babel з Ukrainian (не встановлено в TeX Live)
+  code = code.replace(/\\usepackage\[(?:english,\s*)?ukrainian(?:,\s*english)?\]\{babel\}\n?/g, '');
+  if (!code.includes('inputenc') && code.includes('\\documentclass')) {
+    code = code.replace(/(\\documentclass[^\n]+\n)/, '$1\\usepackage[utf8]{inputenc}\n\\usepackage[T2A]{fontenc}\n');
+  }
+
+  fs.writeFileSync(texFile, code, 'utf8');
 
   // pdflatex двічі — щоб коректно побудувати TOC/посилання якщо є
   const args = ['-interaction=nonstopmode', '-output-directory', tmpDir, texFile];
@@ -567,6 +580,121 @@ app.post('/resume/compile', (req, res) => {
       res.send(pdf);
     });
   });
+});
+
+// ─── AI аналіз вакансії через Claude ─────────────────────────────
+
+app.post('/ai/analyze', requireAuth, async (req, res) => {
+  const { vacancy_text } = req.body;
+  if (!vacancy_text) return res.status(400).json({ ok: false, error: 'vacancy_text required' });
+
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) return res.status(500).json({ ok: false, error: 'ANTHROPIC_API_KEY not set' });
+
+  try {
+    const client = new Anthropic({ apiKey });
+    const message = await client.messages.create({
+      model: 'claude-opus-4-6',
+      max_tokens: 2048,
+      messages: [{
+        role: 'user',
+        content: `Проаналізуй цю DevOps вакансію і поверни ТІЛЬКИ валідний JSON (без markdown, без пояснень):
+{
+  "summary": "2-3 речення: суть позиції та головні вимоги",
+  "must_have": ["обов'язкова вимога 1", ...],
+  "nice_to_have": ["бажана навичка 1", ...],
+  "red_flags": ["потенційна проблема або підозріла деталь", ...],
+  "questions": ["Питання для інтерв'ю 1", ...],
+  "salary_comment": "коментар про зарплату або null"
+}
+
+Правила:
+- must_have: 3-6 пунктів, тільки те що явно обов'язкове
+- nice_to_have: 2-4 пунктів, явно optional або "буде плюсом"
+- red_flags: 0-3 пунктів (відсутня зарплата, завеликий стек, нереальні вимоги тощо)
+- questions: рівно 8 технічних питань які ймовірно зададуть на інтерв'ю
+
+ВАКАНСІЯ:
+${vacancy_text.slice(0, 4000)}`,
+      }],
+    });
+
+    const raw     = message.content.find(b => b.type === 'text')?.text || '';
+    const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '').trim();
+    const data    = JSON.parse(cleaned);
+    res.json({ ok: true, data });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// ─── Збереження та отримання супровідного листа ───────────────────
+
+app.post('/cover-letter/save', requireAuth, (req, res) => {
+  const { vacancy_id, text } = req.body;
+  if (!vacancy_id || !text) return res.status(400).json({ ok: false, error: 'vacancy_id and text required' });
+  db.saveCoverLetter(parseInt(vacancy_id), text);
+  res.json({ ok: true });
+});
+
+app.get('/cover-letter/:vacancyId', requireAuth, (req, res) => {
+  const text = db.getCoverLetter(parseInt(req.params.vacancyId));
+  res.json({ ok: true, text });
+});
+
+// ─── Історія статусів відгуку ─────────────────────────────────────
+
+app.get('/api/tracker/history/:vacancyId', (req, res) => {
+  const history = db.getApplicationHistory(parseInt(req.params.vacancyId));
+  res.json({ ok: true, history });
+});
+
+// ─── Генерація супровідного листа через Claude API ───────────────
+
+app.post('/cover-letter/generate', requireAuth, async (req, res) => {
+  const { vacancy_text, resume_latex } = req.body;
+  if (!vacancy_text || !resume_latex) {
+    return res.status(400).json({ ok: false, error: 'vacancy_text and resume_latex required' });
+  }
+
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    return res.status(500).json({ ok: false, error: 'ANTHROPIC_API_KEY not set in environment' });
+  }
+
+  try {
+    const client = new Anthropic({ apiKey });
+    const message = await client.messages.create({
+      model: 'claude-opus-4-6',
+      max_tokens: 2048,
+      messages: [{
+        role: 'user',
+        content: `Ти — DevOps-інженер, який шукає роботу. Напиши супровідний лист українською мовою на основі вакансії та резюме.
+
+Вимоги до листа:
+- Мова: українська
+- Довжина: 3–4 абзаци, максимум 350 слів
+- Тон: професійний, але живий — не шаблонний
+- Структура: вітання → чому зацікавила вакансія → ключові навички/досвід що відповідають вимогам → заклик до дії
+- Не перелічуй всі технології — вибери 3–5 найбільш релевантних з вакансії
+- Не починай з "Я" — починай з фрази типу "Вас може зацікавити..." або "Переглянувши вашу вакансію..."
+- Підпис: "З повагою," + ім'я кандидата з резюме (якщо є)
+
+ВАКАНСІЯ:
+${vacancy_text.slice(0, 3000)}
+
+РЕЗЮМЕ (LaTeX):
+${resume_latex.slice(0, 4000)}
+
+Напиши лише текст листа, без пояснень та коментарів.`
+      }]
+    });
+
+    const text = message.content.find(b => b.type === 'text')?.text || '';
+    res.json({ ok: true, text });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
 });
 
 // ─── Health check ─────────────────────────────────────────────────

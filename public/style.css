@@ -1381,3 +1381,78 @@ footer {
 }
 .cover-btn-regen:hover { background: var(--hover, #f1f5f9); }
 .cover-copy-status { font-size: .82rem; color: #16a34a; }
+
+/* ─── AI Аналіз вакансії ──────────────────────────────────────── */
+.ai-result-wrap { padding: .25rem 0 .5rem; }
+.ai-summary { font-size: .9rem; color: var(--text, #1e293b); margin-bottom: .9rem; line-height: 1.55; }
+.ai-section { margin-bottom: .85rem; }
+.ai-section-title { font-size: .78rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .04em; color: var(--text-muted, #64748b); margin-bottom: .35rem; }
+.ai-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: .3rem; }
+.ai-list li { font-size: .87rem; padding: .28rem .55rem .28rem 1.8rem; border-radius: 5px; position: relative; }
+.ai-list-must li  { background: #f0fdf4; color: #166534; }
+.ai-list-must li::before  { content: '✓'; position: absolute; left: .55rem; color: #16a34a; font-weight: 700; }
+.ai-list-nice li  { background: #eff6ff; color: #1e40af; }
+.ai-list-nice li::before  { content: '+'; position: absolute; left: .55rem; color: #3b82f6; font-weight: 700; }
+.ai-list-red li   { background: #fff7ed; color: #9a3412; }
+.ai-list-red li::before   { content: '!'; position: absolute; left: .55rem; color: #ea580c; font-weight: 700; }
+.ai-list-q li     { background: var(--hover, #f8fafc); color: var(--text, #1e293b); counter-increment: q; }
+.ai-list-q       { counter-reset: q; }
+.ai-list-q li::before { content: counter(q) '.'; position: absolute; left: .45rem; color: var(--text-muted); font-size: .8rem; }
+.ai-salary-note { font-size: .84rem; color: var(--text-muted); margin-top: .65rem;
+  padding: .35rem .6rem; background: var(--hover, #f8fafc); border-radius: 5px; }
+
+[data-theme="dark"] .ai-list-must li { background: #052e16; color: #86efac; }
+[data-theme="dark"] .ai-list-nice li { background: #1e3a5f; color: #93c5fd; }
+[data-theme="dark"] .ai-list-red li  { background: #431407; color: #fdba74; }
+[data-theme="dark"] .ai-list-q li    { background: var(--hover, #1e293b); }
+
+/* ─── Cover letter: Save button + notice ─────────────────────── */
+.cover-btn-save {
+  padding: .42rem .9rem;
+  border-radius: 6px;
+  font-size: .85rem;
+  background: transparent;
+  color: #16a34a;
+  border: 1px solid #16a34a;
+  cursor: pointer;
+  font-weight: 600;
+}
+.cover-btn-save:hover { background: #f0fdf4; }
+.cover-saved-notice {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  font-size: .82rem;
+  color: var(--text-muted, #64748b);
+  background: var(--hover, #f8fafc);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 6px;
+  padding: .35rem .65rem;
+  margin-bottom: .5rem;
+}
+.cover-btn-load {
+  font-size: .8rem;
+  padding: .2rem .55rem;
+  border-radius: 4px;
+  border: 1px solid var(--border, #cbd5e1);
+  background: transparent;
+  cursor: pointer;
+  color: var(--text-muted);
+}
+.cover-btn-load:hover { background: var(--hover); }
+
+/* ─── Tracker: Історія статусів ──────────────────────────────── */
+.app-history-list { display: flex; flex-direction: column; gap: .3rem; }
+.hist-item {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  font-size: .82rem;
+  padding: .25rem .4rem;
+  border-radius: 4px;
+  background: var(--hover, #f8fafc);
+}
+.hist-arrow { font-weight: 600; color: var(--text, #1e293b); }
+.hist-note  { color: var(--text-muted, #64748b); font-style: italic; }
+.hist-date  { margin-left: auto; color: var(--text-muted, #64748b); white-space: nowrap; font-size: .78rem; }
