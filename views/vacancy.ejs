@@ -95,6 +95,25 @@
     </div>
     <% } %>
 
+    <!-- Відповідність резюме -->
+    <% if (scoreData && scoreData.total > 0) {
+      const sc = scoreData.score;
+      const cls = sc >= 70 ? 'hi' : sc >= 40 ? 'mid' : 'lo';
+    %>
+    <div class="vd-score score-<%= cls %>">
+      <span class="vd-score-pct"><%= sc %>%</span>
+      <div>
+        <b>Відповідність базового резюме</b><br>
+        <span class="vd-score-detail">
+          Збіг: <%= scoreData.matched %> з <%= scoreData.total %> ключових слів.
+          <% if (scoreData.missing.length > 0) { %>
+            Не вистачає: <%= scoreData.missing.slice(0,5).join(', ') %><%= scoreData.missing.length > 5 ? ` та ще ${scoreData.missing.length - 5}` : '' %>.
+          <% } %>
+        </span>
+      </div>
+    </div>
+    <% } %>
+
     <!-- Дати -->
     <div class="vd-dates">
       <% if (vacancy.published_at) { %>
@@ -102,6 +121,26 @@
       <% } %>
       <span>Знайдено: <b><%= vacancy.created_at?.slice(0, 10) %></b></span>
     </div>
+
+    <!-- Нотатки -->
+    <div class="vd-notes">
+      <div class="vd-notes-label">Нотатки</div>
+      <textarea class="vd-notes-textarea" id="vacancy-note"
+        placeholder="Запиши тут що дізнався: зарплата на інтерв'ю, контакт рекрутера, враження..."
+      ><%= note || '' %></textarea>
+      <div class="vd-notes-status" id="note-status"></div>
+    </div>
+
+    <!-- Підготовка до інтерв'ю -->
+    <% if (vacancy.techTags && vacancy.techTags.length > 0) { %>
+    <div class="vd-prep">
+      <button class="vd-prep-toggle" onclick="togglePrep(this)">
+        <span>Підготовка до інтерв'ю</span>
+        <span id="prep-chevron">▼</span>
+      </button>
+      <div class="vd-prep-body" id="prep-body"></div>
+    </div>
+    <% } %>
 
   </article>
 
@@ -166,6 +205,270 @@ function statusLabel(s) {
 })();
 <% } %>
 
+// ─── Нотатки ─────────────────────────────────────────────────────
+(function initNotes() {
+  const ta     = document.getElementById('vacancy-note');
+  const status = document.getElementById('note-status');
+  if (!ta) return;
+  let timer;
+  ta.addEventListener('input', () => {
+    clearTimeout(timer);
+    status.textContent = '';
+    timer = setTimeout(() => saveNote(ta.value), 800);
+  });
+  ta.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+      e.preventDefault();
+      clearTimeout(timer);
+      saveNote(ta.value);
+    }
+  });
+})();
+
+function saveNote(text) {
+  const status = document.getElementById('note-status');
+  fetch('/vacancy/<%= vacancy.id %>/note', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ note: text }),
+  }).then(r => r.json()).then(d => {
+    if (d.ok) { status.textContent = 'Збережено'; setTimeout(() => { status.textContent = ''; }, 2000); }
+  }).catch(() => { status.textContent = 'Помилка збереження'; });
+}
+
+// ─── Підготовка до інтерв'ю ──────────────────────────────────────
+const PREP_DB = {
+  'Docker': [
+    'Dockerfile інструкції: FROM, RUN, COPY, CMD, ENTRYPOINT, ENV, ARG',
+    'Multi-stage builds — зменшення розміру образу',
+    'Docker networking: bridge, host, overlay, none',
+    'Volumes vs bind mounts — коли що використовувати',
+    'docker-compose: services, networks, volumes, depends_on',
+    'Оптимізація образів: .dockerignore, layer caching',
+    'docker inspect, logs, exec, stats',
+  ],
+  'Kubernetes': [
+    'Pod, Deployment, ReplicaSet — різниця та lifecycle',
+    'Services: ClusterIP, NodePort, LoadBalancer, ExternalName',
+    'ConfigMap та Secret — зберігання конфігурації',
+    'Ingress та IngressController (Nginx, Traefik)',
+    'PersistentVolume, PVC, StorageClass',
+    'RBAC: Role, ClusterRole, RoleBinding, ServiceAccount',
+    'Helm: chart structure, values.yaml, templates',
+    'HPA — Horizontal Pod Autoscaler',
+    'Liveness vs Readiness vs Startup probes',
+    'Resource requests та limits',
+    'kubectl: get, describe, apply, delete, logs, exec, port-forward',
+  ],
+  'Terraform': [
+    'terraform init, plan, apply, destroy — послідовність',
+    'State file — навіщо і де зберігати (remote backend: S3, GCS)',
+    'Modules — структура та перевикористання',
+    'Variables, outputs, locals, data sources',
+    'depends_on та implicit dependencies',
+    'terraform import та state mv',
+    'Workspace для різних середовищ',
+  ],
+  'Ansible': [
+    'Playbook: hosts, tasks, handlers, vars, become',
+    'Inventory: static (.ini/.yml) та dynamic (AWS, GCP)',
+    'Roles — структура та galaxy',
+    'Ansible Vault — шифрування секретів',
+    'Idempotency — принцип та перевірка',
+    'Модулі: apt/yum, copy, template, service, command, shell, file',
+    'Jinja2 templating у templates та tasks',
+  ],
+  'CI/CD': [
+    'Pipeline stages: build → test → security → deploy',
+    'GitLab CI: .gitlab-ci.yml, runners, artifacts, cache, environments',
+    'GitHub Actions: workflow, jobs, steps, secrets, matrix',
+    'Deployment strategies: Rolling, Blue-Green, Canary',
+    'Secrets management у CI (Vault, env vars)',
+    'Rollback стратегії та тригери',
+    'Artifact versioning та Docker tagging',
+  ],
+  'AWS': [
+    'EC2: instance types, AMI, SG, Key Pairs, IAM Role',
+    'VPC: subnets (public/private), route tables, IGW, NAT',
+    'S3: policies, versioning, lifecycle, presigned URLs',
+    'IAM: users, roles, policies, least privilege',
+    'RDS: Multi-AZ, read replicas, backup',
+    'EKS vs ECS — коли що вибирати',
+    'CloudWatch: logs, metrics, alarms, dashboards',
+    'Lambda — serverless, triggers, cold start',
+    'ALB vs NLB — коли що вибирати',
+  ],
+  'GCP': [
+    'GKE — керований Kubernetes в Google Cloud',
+    'Cloud Run — serverless containers',
+    'Cloud Storage, BigQuery, Pub/Sub',
+    'IAM та Service Accounts',
+    'Cloud Monitoring та Cloud Logging',
+    'gcloud CLI основи',
+  ],
+  'Azure': [
+    'AKS — Azure Kubernetes Service',
+    'Azure DevOps — pipelines, repos, boards',
+    'Azure Storage, Cosmos DB, Azure SQL',
+    'Azure Active Directory та RBAC',
+    'Azure Monitor та Log Analytics',
+  ],
+  'Prometheus': [
+    'Типи метрик: Counter, Gauge, Histogram, Summary',
+    'PromQL: rate(), increase(), avg(), topk(), histogram_quantile()',
+    'scrape_interval, scrape_timeout, job config',
+    'Labels та selectors',
+    'Alertmanager: routes, receivers, inhibit_rules, grouping',
+    'Recording rules — передобчислення важких запитів',
+    'Push (Pushgateway) vs Pull модель',
+  ],
+  'Grafana': [
+    'Datasources: Prometheus, Loki, CloudWatch, PostgreSQL',
+    'Dashboard variables та templating',
+    'Panel types: time series, stat, gauge, table, heatmap',
+    'Alerting: contact points, notification policies',
+    'Provisioning dashboards через JSON/YAML',
+    'LogQL основи для Loki',
+  ],
+  'Linux': [
+    'systemd: systemctl start/stop/enable, journalctl -u, unit files',
+    'Процеси: ps aux, top/htop, kill, nice, nohup, &',
+    'Файлова система: chmod/chown, find, df -h, du -sh, ln',
+    'Мережа: ss/netstat, iptables, ip route, curl, dig, nslookup',
+    'Логи: /var/log, journalctl, logrotate, tail -f',
+    'Cron: crontab -e, синтаксис, /etc/cron.d',
+    'Bash: if/else, for/while, functions, $?, trap, set -e',
+    'SSH: ключі (keygen, copy-id), ~/.ssh/config, tunneling, scp, rsync',
+    'Performance: vmstat, iostat, sar, dstat',
+    'Package managers: apt (Ubuntu), dnf/yum (RHEL/CentOS)',
+  ],
+  'Git': [
+    'rebase vs merge — коли що використовувати',
+    'Git Flow vs trunk-based development',
+    'revert vs reset vs checkout',
+    'Cherry-pick, stash pop/apply',
+    'git bisect для пошуку регресій',
+    '.gitignore та .gitattributes',
+    'Hooks: pre-commit, pre-push',
+  ],
+  'Python': [
+    'Boto3 — AWS SDK (s3, ec2, iam, cloudwatch)',
+    'Requests / HTTPX для HTTP',
+    'Paramiko — SSH клієнт',
+    'subprocess.run — виклик shell команд',
+    'argparse — CLI інструменти',
+    'Virtualenv, pip, requirements.txt',
+    'f-strings, list/dict comprehensions, generators, context managers',
+  ],
+  'Nginx': [
+    'Структура конфігу: http, server, location блоки',
+    'proxy_pass — reverse proxy до backend',
+    'upstream — load balancing (round-robin, least_conn)',
+    'SSL/TLS: ssl_certificate, ssl_dhparam, HSTS',
+    'Gzip стиснення та кешування',
+    'Rate limiting: limit_req_zone, limit_conn_zone',
+    'nginx -t (перевірка) та nginx -s reload',
+  ],
+  'DevSecOps': [
+    'SAST vs DAST — різниця та інструменти (SonarQube, OWASP ZAP)',
+    'Trivy — сканування образів та IaC на вразливості',
+    'SonarQube — якість коду та security hotspots',
+    'Secrets scanning: git-secrets, truffleHog',
+    'Container hardening: non-root, read-only FS, no-new-privileges',
+    'Network policies у Kubernetes',
+    'OWASP Top 10 — що це і як захищатись',
+  ],
+  'Helm': [
+    'Chart structure: Chart.yaml, values.yaml, templates/',
+    'helm install, upgrade, rollback, uninstall',
+    'Template functions: .Values, .Release, include, toYaml',
+    'Helm hooks: pre-install, post-upgrade',
+    'Helmfile для управління кількома чартами',
+    'OCI registry для зберігання чартів',
+  ],
+  'ArgoCD': [
+    'GitOps принцип: git як джерело правди',
+    'Application CRD: source, destination, syncPolicy',
+    'Sync strategies: manual vs automated',
+    'ApplicationSet для multi-cluster/multi-env',
+    'Health checks та custom health checks',
+    'Rollback через git revert',
+  ],
+  'SRE': [
+    'SLO, SLA, SLI — визначення та різниця',
+    'Error budget та burn rate alerts',
+    'Toil — що це і як скорочувати',
+    'Incident management: severity levels, postmortem',
+    'Chaos engineering основи (Chaos Monkey, LitmusChaos)',
+    'On-call rotation та ескалація',
+  ],
+};
+
+const VACANCY_ID = <%= vacancy.id %>;
+const TECH_TAGS  = <%- JSON.stringify(vacancy.techTags || []) %>;
+
+function togglePrep(btn) {
+  const body    = document.getElementById('prep-body');
+  const chevron = document.getElementById('prep-chevron');
+  const isOpen  = body.classList.toggle('open');
+  chevron.textContent = isOpen ? '▲' : '▼';
+  if (isOpen && !body.dataset.rendered) {
+    renderPrep();
+    body.dataset.rendered = '1';
+  }
+}
+
+function renderPrep() {
+  const body     = document.getElementById('prep-body');
+  const lsKey    = 'prep_' + VACANCY_ID;
+  const saved    = JSON.parse(localStorage.getItem(lsKey) || '{}');
+  const matched  = TECH_TAGS.filter(tag => PREP_DB[tag]);
+
+  if (matched.length === 0) {
+    body.innerHTML = '<p style="color:var(--text-muted);font-size:.85rem">Специфічних тем не знайдено для цих тегів. Загальні DevOps знання:</p>';
+    matched.push('Linux', 'Git');
+  }
+
+  let totalItems = 0, checkedItems = 0;
+  let html = '';
+
+  for (const tag of matched) {
+    const items = PREP_DB[tag];
+    if (!items) continue;
+    html += `<div class="vd-prep-section"><div class="vd-prep-section-title">${tag}</div>`;
+    items.forEach((item, i) => {
+      const key     = `${tag}_${i}`;
+      const checked = saved[key] || false;
+      totalItems++;
+      if (checked) checkedItems++;
+      html += `<label class="vd-prep-item${checked ? ' checked' : ''}" data-key="${key}">
+        <input type="checkbox" ${checked ? 'checked' : ''} onchange="togglePrepItem(this,'${key}')">
+        ${item}
+      </label>`;
+    });
+    html += '</div>';
+  }
+
+  const pct = totalItems > 0 ? Math.round(checkedItems / totalItems * 100) : 0;
+  body.innerHTML = `<div class="vd-prep-progress">Готовність: ${checkedItems}/${totalItems} (${pct}%)</div>` + html;
+}
+
+function togglePrepItem(cb, key) {
+  const lsKey = 'prep_' + VACANCY_ID;
+  const saved = JSON.parse(localStorage.getItem(lsKey) || '{}');
+  saved[key]  = cb.checked;
+  localStorage.setItem(lsKey, JSON.stringify(saved));
+  cb.closest('.vd-prep-item').classList.toggle('checked', cb.checked);
+  // Оновити лічильник
+  const body = document.getElementById('prep-body');
+  const total   = body.querySelectorAll('.vd-prep-item').length;
+  const checked = body.querySelectorAll('.vd-prep-item.checked').length;
+  const pct     = total > 0 ? Math.round(checked / total * 100) : 0;
+  const prog    = body.querySelector('.vd-prep-progress');
+  if (prog) prog.textContent = `Готовність: ${checked}/${total} (${pct}%)`;
+}
+
+// ─── Dark mode ────────────────────────────────────────────────────
 function toggleDark() {
   const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
   const next = isDark ? 'light' : 'dark';

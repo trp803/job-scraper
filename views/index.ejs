@@ -95,6 +95,13 @@
       <span>З зарплатою</span>
     </label>
 
+    <!-- Без дублікатів -->
+    <label class="toggle">
+      <input type="checkbox" name="dupes" value="0"
+        <%= filter.noDupes ? 'checked' : '' %> onchange="this.form.submit()">
+      <span>Без дублікатів</span>
+    </label>
+
     <span class="results-count"><%= pagination.count %> вакансій</span>
   </form>
 
@@ -179,11 +186,17 @@
       <p class="job-desc"><%= v.description %></p>
     <% } %>
 
-    <!-- Рядок 6: Дія відгук -->
+    <!-- Рядок 6: Дія відгук + score -->
     <div class="job-actions">
       <button class="btn-apply" onclick="applyJob(<%= v.id %>)" id="apply-btn-<%= v.id %>">
         ✉ Відгукнутись
       </button>
+      <% if (v.resumeScore != null) { %>
+        <span class="resume-score-badge score-<%= v.resumeScore >= 70 ? 'hi' : v.resumeScore >= 40 ? 'mid' : 'lo' %>"
+              title="Відповідність базового резюме вакансії">
+          резюме <%= v.resumeScore %>%
+        </span>
+      <% } %>
     </div>
 
   </article>

@@ -14,6 +14,7 @@ const db = new Database(path.join(dataDir, 'jobs.db'));
 
 // WAL режим — ускоряет запись, безопаснее при конкурентных читателях
 db.pragma('journal_mode = WAL');
+db.pragma('foreign_keys = ON');
 
 // Создаём таблицы если не существуют
 db.exec(`
@@ -54,6 +55,13 @@ db.exec(`
     updated_at  TEXT    DEFAULT (datetime('now'))
   );
 
+  -- Нотатки до вакансій (окремо від трекеру)
+  CREATE TABLE IF NOT EXISTS vacancy_notes (
+    vacancy_id  INTEGER PRIMARY KEY REFERENCES vacancies(id) ON DELETE CASCADE,
+    note        TEXT    NOT NULL DEFAULT '',
+    updated_at  TEXT    DEFAULT (datetime('now'))
+  );
+
   -- Трекер відгуків на вакансії
   CREATE TABLE IF NOT EXISTS applications (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -77,55 +85,37 @@ const insertVacancy = db.prepare(`
   VALUES (@source, @title, @company, @location, @salary, @url, @description, @published_at)
 `);
 
-// Получить все вакансии без пагинации (для серверной фильтрации по enrich-полям)
-function getAllVacancies({ source, onlyNew, search, hasSalary } = {}) {
-  let where = [];
-  let params = {};
-
-  if (source && source !== 'all') {
-    where.push('source = @source');
-    params.source = source;
-  }
-  if (onlyNew) {
-    where.push('is_new = 1');
-  }
-  if (search) {
-    where.push('(title LIKE @search OR company LIKE @search)');
-    params.search = `%${search}%`;
-  }
-  if (hasSalary) {
-    where.push("salary IS NOT NULL AND salary != ''");
-  }
-
-  const condition = where.length ? `WHERE ${where.join(' AND ')}` : '';
-  return db.prepare(`
-    SELECT * FROM vacancies
-    ${condition}
-    ORDER BY created_at DESC, id DESC
-  `).all(params);
+// Построитель WHERE-условий (общий для всех query)
+function buildWhere({ source, onlyNew, search, hasSalary } = {}) {
+  const where  = [];
+  const params = {};
+  if (source && source !== 'all') { where.push('source = @source'); params.source = source; }
+  if (onlyNew)   { where.push('is_new = 1'); }
+  if (search)    { where.push('(title LIKE @search OR company LIKE @search)'); params.search = `%${search}%`; }
+  if (hasSalary) { where.push("salary IS NOT NULL AND salary != ''"); }
+  return { condition: where.length ? `WHERE ${where.join(' AND ')}` : '', params };
 }
 
-// Получить все вакансии с фильтрами
-function getVacancies({ source, onlyNew, search, hasSalary, limit = 100, offset = 0 } = {}) {
-  let where = [];
-  let params = {};
+// Получить все вакансии без пагинации (для серверной фильтрации по enrich-полям)
+function getAllVacancies(filters = {}) {
+  const { condition, params } = buildWhere(filters);
+  return db.prepare(`SELECT * FROM vacancies ${condition} ORDER BY created_at DESC, id DESC`).all(params);
+}
 
-  if (source && source !== 'all') {
-    where.push('source = @source');
-    params.source = source;
-  }
-  if (onlyNew) {
-    where.push('is_new = 1');
-  }
-  if (search) {
-    where.push('(title LIKE @search OR company LIKE @search)');
-    params.search = `%${search}%`;
-  }
-  if (hasSalary) {
-    where.push("salary IS NOT NULL AND salary != ''");
-  }
+// Получить все вакансии с фильтрами + опциональный dedup
+function getVacancies({ source, onlyNew, search, hasSalary, noDupes, limit = 100, offset = 0 } = {}) {
+  const { condition, params } = buildWhere({ source, onlyNew, search, hasSalary });
 
-  const condition = where.length ? `WHERE ${where.join(' AND ')}` : '';
+  // При дедупликации: GROUP BY title+company, оставляем свежайшую запись
+  if (noDupes) {
+    return db.prepare(`
+      SELECT *, MAX(id) as _mid FROM vacancies
+      ${condition}
+      GROUP BY lower(trim(title)), lower(trim(coalesce(company,'')))
+      ORDER BY created_at DESC, id DESC
+      LIMIT @limit OFFSET @offset
+    `).all({ ...params, limit, offset });
+  }
 
   return db.prepare(`
     SELECT * FROM vacancies
@@ -136,27 +126,31 @@ function getVacancies({ source, onlyNew, search, hasSalary, limit = 100, offset 
 }
 
 // Количество вакансий (для пагинации)
-function countVacancies({ source, onlyNew, search, hasSalary } = {}) {
-  let where = [];
-  let params = {};
-
-  if (source && source !== 'all') {
-    where.push('source = @source');
-    params.source = source;
+function countVacancies({ source, onlyNew, search, hasSalary, noDupes } = {}) {
+  const { condition, params } = buildWhere({ source, onlyNew, search, hasSalary });
+  if (noDupes) {
+    return db.prepare(`
+      SELECT COUNT(*) as cnt FROM (
+        SELECT MAX(id) FROM vacancies ${condition}
+        GROUP BY lower(trim(title)), lower(trim(coalesce(company,'')))
+      )
+    `).get(params).cnt;
   }
-  if (onlyNew) {
-    where.push('is_new = 1');
-  }
-  if (search) {
-    where.push('(title LIKE @search OR company LIKE @search)');
-    params.search = `%${search}%`;
-  }
-  if (hasSalary) {
-    where.push("salary IS NOT NULL AND salary != ''");
-  }
-
-  const condition = where.length ? `WHERE ${where.join(' AND ')}` : '';
   return db.prepare(`SELECT COUNT(*) as cnt FROM vacancies ${condition}`).get(params).cnt;
+}
+
+// ─── Нотатки до вакансій ─────────────────────────────────────────
+function getVacancyNote(vacancyId) {
+  const row = db.prepare('SELECT note FROM vacancy_notes WHERE vacancy_id = ?').get(vacancyId);
+  return row ? row.note : '';
+}
+
+function saveVacancyNote(vacancyId, note) {
+  db.prepare(`
+    INSERT INTO vacancy_notes (vacancy_id, note, updated_at)
+    VALUES (?, ?, datetime('now'))
+    ON CONFLICT(vacancy_id) DO UPDATE SET note = excluded.note, updated_at = datetime('now')
+  `).run(vacancyId, note || '');
 }
 
 // Пометить вакансию как просмотренную
@@ -471,6 +465,8 @@ module.exports = {
   getApplications,
   getApplicationByVacancy,
   getApplicationStats,
+  getVacancyNote,
+  saveVacancyNote,
   getResumes,
   getBaseResume,
   getResumeById,

@@ -1,12 +1,16 @@
 // server.js — Express веб-сервер
 
-const express  = require('express');
-const path     = require('path');
-const session  = require('express-session');
+const express        = require('express');
+const path           = require('path');
+const fs             = require('fs');
+const os             = require('os');
+const { execFile }   = require('child_process');
+const session        = require('express-session');
 const { EventEmitter } = require('events');
-const db       = require('./db');
+const db             = require('./db');
 const { enrichAll, enrichVacancy } = require('./enricher');
 const { notifyNewJobs } = require('./telegram');
+const { calcScore }  = require('./keywords');
 
 // ─── Конфіг авторизації ───────────────────────────────────────────
 const AUTH_USER      = process.env.AUTH_USER      || 'admin';
@@ -114,21 +118,26 @@ app.get('/', (req, res) => {
     remote  = '',
     tech    = '',
     salary  = '',
+    dupes   = '',
     page    = '1',
   } = req.query;
 
   const pageSize    = 30;
   const currentPage = Math.max(1, parseInt(page) || 1);
   const offset      = (currentPage - 1) * pageSize;
+  const noDupes     = dupes === '0';  // dupes=0 → hide duplicates
 
   const dbFilter = {
     source:    source || 'all',
     search:    search.trim() || null,
     onlyNew:   onlyNew === '1',
     hasSalary: salary === '1',
+    noDupes,
   };
 
-  const stats = db.getStats();
+  const stats    = db.getStats();
+  const baseRes  = db.getBaseResume();
+  const baseTex  = baseRes?.latex_code || '';
 
   // Якщо є фільтри по enrich-полях (level/remote/tech) — збагачуємо всі,
   // потім фільтруємо і пагінуємо в памʼяті. Інакше — звичайна DB пагінація.
@@ -148,12 +157,20 @@ app.get('/', (req, res) => {
     total     = db.countVacancies(dbFilter);
   }
 
+  // Розрахунок resume score для кожної вакансії (якщо є базове резюме)
+  if (baseTex) {
+    for (const v of vacancies) {
+      const text = [v.title, v.company, v.description].filter(Boolean).join(' ');
+      v.resumeScore = calcScore(text, baseTex).score;
+    }
+  }
+
   const totalPages = Math.ceil(total / pageSize);
 
   res.render('index', {
     vacancies,
     stats,
-    filter: { source, search, onlyNew: onlyNew === '1', level, remote, tech, hasSalary: salary === '1' },
+    filter: { source, search, onlyNew: onlyNew === '1', level, remote, tech, hasSalary: salary === '1', noDupes },
     pagination: { current: currentPage, total: totalPages, count: total },
   });
 });
@@ -250,9 +267,22 @@ app.get('/vacancy/:id', (req, res) => {
   const vacancy = db.getVacancyById(id);
   if (!vacancy) return res.status(404).send('Вакансія не знайдена');
   db.markViewed.run(id);
-  const enriched = enrichVacancy(vacancy);
+  const enriched    = enrichVacancy(vacancy);
   const application = db.getApplicationByVacancy(id);
-  res.render('vacancy', { vacancy: enriched, application: application || null });
+  const note        = db.getVacancyNote(id);
+  const baseRes     = db.getBaseResume();
+  const scoreData   = baseRes?.latex_code
+    ? calcScore([vacancy.title, vacancy.company, vacancy.description].filter(Boolean).join(' '), baseRes.latex_code)
+    : null;
+  res.render('vacancy', { vacancy: enriched, application: application || null, note, scoreData });
+});
+
+// ─── Збереження нотатки до вакансії ──────────────────────────────
+app.post('/vacancy/:id/note', (req, res) => {
+  const id = parseInt(req.params.id);
+  if (!id) return res.status(400).json({ ok: false });
+  db.saveVacancyNote(id, req.body.note || '');
+  res.json({ ok: true });
 });
 
 // ─── Експорт ──────────────────────────────────────────────────────
@@ -496,6 +526,42 @@ app.post('/resume/delete/:id', (req, res) => {
     return res.json({ ok: true });
   }
   res.redirect('/resume');
+});
+
+// Компіляція LaTeX → PDF через pdflatex
+app.post('/resume/compile', (req, res) => {
+  const { latex_code, name } = req.body;
+  if (!latex_code) return res.status(400).json({ ok: false, error: 'latex_code required' });
+
+  const tmpDir  = fs.mkdtempSync(path.join(os.tmpdir(), 'resume-'));
+  const texFile = path.join(tmpDir, 'resume.tex');
+  const pdfFile = path.join(tmpDir, 'resume.pdf');
+
+  fs.writeFileSync(texFile, latex_code, 'utf8');
+
+  // pdflatex двічі — щоб коректно побудувати TOC/посилання якщо є
+  const args = ['-interaction=nonstopmode', '-output-directory', tmpDir, texFile];
+  execFile('pdflatex', args, { timeout: 30000 }, (err, stdout) => {
+    if (err && !fs.existsSync(pdfFile)) {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+      return res.status(500).json({ ok: false, error: stdout.slice(-1000) });
+    }
+    // другий прохід (тихо, ігноруємо помилки)
+    execFile('pdflatex', args, { timeout: 30000 }, () => {
+      if (!fs.existsSync(pdfFile)) {
+        fs.rmSync(tmpDir, { recursive: true, force: true });
+        return res.status(500).json({ ok: false, error: 'PDF не згенерований' });
+      }
+      const pdf      = fs.readFileSync(pdfFile);
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+      // RFC 5987: filename* дозволяє UTF-8 символи (кирилиця тощо)
+      const displayName = (name || 'resume').trim() || 'resume';
+      const encoded     = encodeURIComponent(displayName + '.pdf');
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="resume.pdf"; filename*=UTF-8''${encoded}`);
+      res.send(pdf);
+    });
+  });
 });
 
 // ─── Health check ─────────────────────────────────────────────────
