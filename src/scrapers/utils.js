@@ -52,4 +52,21 @@ function cleanText(text) {
   return text.replace(/\s+/g, ' ').trim();
 }
 
-module.exports = { get, sleep, randomDelay, cleanText };
+// ─── Фільтр релевантності DevOps вакансій ────────────────────────
+// Повертає true тільки якщо назва вакансії відноситься до DevOps/Infra/Cloud
+// Сильний сигнал DevOps — завжди залишаємо, навіть якщо є Python/Go в дужках
+const STRONG_RE = /\b(devops|dev.?ops|devsecops|dev.?sec.?ops|sre|site.?reliability)\b/i;
+
+// Слабший сигнал — Cloud/Platform/Infra Engineer (без sysadmin/network/developer)
+const WEAK_RE = /\b(platform\s+engin|platform\s+ops|platform\s+arch|cloud\s+engin|cloud\s+archit|cloud\s+ops|cloud\s+infra|infrastructure\s+engin|infra\s+engin|mlops|ml.?ops|ai\s+infra|release\s+engin|build\s+engin|secops|ci.?cd\s+engin|observ\w*\s+\w*engin)/i;
+
+// Явний мусор — system admin, windows admin, helpdesk, pure developer ролі
+const NOISE_RE = /\b(system.?admin|windows.?admin|citrix|helpdesk|help.?desk|\.?l[123]\s+support|network.?admin|head.?of.?system|java\s+developer|java\s+engineer|python\s+developer|react\s+developer|angular|frontend\s+dev|backend\s+dev|fullstack|full.?stack\s+dev|php\s+dev|scala\s+dev|data\s+scien|data\s+analyst|qa\s+engin|test\s+engin|manual\s+qa|product\s+manager|designer|recruiter)\b/i;
+
+function isDevOpsTitle(title) {
+  if (STRONG_RE.test(title)) return true;       // devops/sre завжди беремо
+  if (NOISE_RE.test(title)) return false;        // явний мусор — відкидаємо
+  return WEAK_RE.test(title);                    // cloud/platform/infra — беремо
+}
+
+module.exports = { get, sleep, randomDelay, cleanText, isDevOpsTitle };

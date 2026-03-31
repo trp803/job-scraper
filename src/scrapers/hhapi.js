@@ -3,7 +3,7 @@
 // Документация: https://github.com/hhru/api
 // Лимит: 50 вакансий за запрос, можно пагинировать
 
-const { get, sleep, cleanText } = require('./utils');
+const { get, sleep, cleanText, isDevOpsTitle } = require('./utils');
 
 const SOURCE = 'hh.ua';
 
@@ -71,9 +71,12 @@ async function scrape() {
         // Краткие требования из snippet
         const desc = cleanText(item.snippet?.requirement || item.snippet?.responsibility || '').slice(0, 300) || null;
 
+        const title = cleanText(item.name);
+        if (!isDevOpsTitle(title)) continue;
+
         results.push({
           source: SOURCE,
-          title: cleanText(item.name),
+          title,
           company: cleanText(item.employer?.name) || null,
           location,
           salary,

@@ -14,17 +14,16 @@
 // Всі результати дедуплікуються по URL
 
 const cheerio = require('cheerio');
-const { get, sleep, cleanText } = require('./utils');
+const { get, sleep, cleanText, isDevOpsTitle } = require('./utils');
 
 const SOURCE = 'djinni.co';
 
-// Джерела пошуку (назва для логу + URL-параметри)
+// Джерела пошуку: тільки категорійні фільтри (primary_keyword)
+// all_keywords=kubernetes/terraform повертає будь-яких девів що згадують ці інструменти
 const SEARCH_SOURCES = [
-  { label: 'DevOps',      params: 'primary_keyword=DevOps' },
-  { label: 'Sysadmin',    params: 'primary_keyword=Sysadmin' },
-  { label: 'SRE',         params: 'all_keywords=SRE' },
-  { label: 'Kubernetes',  params: 'all_keywords=kubernetes' },
-  { label: 'Terraform',   params: 'all_keywords=terraform' },
+  { label: 'DevOps',   params: 'primary_keyword=DevOps' },
+  { label: 'Sysadmin', params: 'primary_keyword=Sysadmin' },
+  { label: 'SRE',      params: 'all_keywords=SRE' },
 ];
 
 // Визначити останню сторінку з пагінації
@@ -46,6 +45,9 @@ function extractVacancies($, seen) {
     // Заголовок: елемент .job-item__position (чистий текст без дочірніх span)
     const title = cleanText($el.find('.job-item__position').first().text());
     if (!title) return;
+
+    // Фільтр релевантності — Sysadmin-категорія може містити не-DevOps ролі
+    if (!isDevOpsTitle(title)) return;
 
     // Посилання: a.job_item__header-link
     const $link = $el.find('a.job_item__header-link').first();

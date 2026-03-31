@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Трекер відгуків — DevOps Jobs</title>
+  <link rel="stylesheet" href="/style.css">
+  <script>if(localStorage.getItem('theme')==='dark')document.documentElement.setAttribute('data-theme','dark')</script>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo">
+      <span class="logo-icon">⚙</span>
+      <span>DevOps Jobs</span>
+    </div>
+    <nav class="tab-nav">
+      <a href="/" class="tab-link">Вакансії</a>
+      <a href="/analytics" class="tab-link">Аналітика</a>
+      <a href="/tracker" class="tab-link active">Відгуки</a>
+      <a href="/logs" class="tab-link">Логи</a>
+    </nav>
+    <div class="stats">
+      <% const total = appStats.reduce((s, a) => s + a.cnt, 0); %>
+      <span>Всього відгуків: <b><%= total %></b></span>
+    </div>
+    <button class="btn-dark" id="btn-dark" onclick="toggleDark()" title="Темна тема">🌙</button>
+  </div>
+</header>
+
+<!-- ─── Kanban Board ──────────────────────────────────── -->
+<div class="tracker-wrap">
+
+  <!-- Статистика зверху -->
+  <div class="tracker-stats">
+    <% const STATUSES = [
+      { key: 'applied',   label: 'Відгукнулись', icon: '✉', cls: 'st-applied'  },
+      { key: 'screening', label: 'Скринінг',     icon: '📋', cls: 'st-screening'},
+      { key: 'interview', label: "Інтерв'ю",     icon: '🎤', cls: 'st-interview'},
+      { key: 'offer',     label: 'Оффер',        icon: '🎉', cls: 'st-offer'    },
+      { key: 'rejected',  label: 'Відмовили',    icon: '✗',  cls: 'st-rejected' },
+      { key: 'withdrawn', label: 'Відкликали',   icon: '↩',  cls: 'st-withdrawn'},
+    ]; %>
+    <% STATUSES.forEach(st => { %>
+      <%
+        const found = appStats.find(a => a.status === st.key);
+        const cnt = found ? found.cnt : 0;
+        const isActive = filter.status === st.key;
+      %>
+      <a href="/tracker?status=<%= st.key %>"
+         class="tracker-stat-card <%= st.cls %> <%= isActive ? 'active' : '' %>">
+        <span class="tsc-icon"><%= st.icon %></span>
+        <span class="tsc-label"><%= st.label %></span>
+        <span class="tsc-count"><%= cnt %></span>
+      </a>
+    <% }); %>
+    <% if (filter.status) { %>
+      <a href="/tracker" class="tracker-stat-card st-all">
+        <span class="tsc-icon">⊞</span>
+        <span class="tsc-label">Всі</span>
+        <span class="tsc-count"><%= total %></span>
+      </a>
+    <% } %>
+  </div>
+
+  <!-- Воронка конверсії -->
+  <% if (total > 0) {
+    const pipe = ['applied','screening','interview','offer'];
+    const pipeData = pipe.map(k => ({ key: k, cnt: appStats.find(a=>a.status===k)?.cnt||0 }));
+    const base = pipeData[0].cnt || 1;
+  %>
+  <div class="funnel-wrap">
+    <h3 class="funnel-title">Воронка відгуків</h3>
+    <div class="funnel-stages">
+      <% pipeData.forEach((stage, i) => {
+        const pct = Math.round((stage.cnt / base) * 100);
+        const conv = i > 0 && pipeData[i-1].cnt > 0 ? Math.round((stage.cnt / pipeData[i-1].cnt) * 100) : null;
+        const labels = { applied: 'Відгукнулись', screening: 'Скринінг', interview: "Інтерв'ю", offer: 'Офер' };
+      %>
+      <div class="funnel-stage">
+        <div class="funnel-bar-wrap">
+          <div class="funnel-bar funnel-<%= stage.key %>" style="width:<%= pct %>%">
+            <span class="funnel-count"><%= stage.cnt %></span>
+          </div>
+        </div>
+        <div class="funnel-label">
+          <%= labels[stage.key] %>
+          <% if (conv !== null) { %><span class="funnel-conv"><%= conv %>%</span><% } %>
+        </div>
+      </div>
+      <% }); %>
+    </div>
+    <% const rejected = appStats.find(a=>a.status==='rejected')?.cnt||0;
+       const offers   = pipeData[3].cnt;
+       const applied  = pipeData[0].cnt;
+    %>
+    <div class="funnel-summary">
+      <% if (offers > 0 && applied > 0) { %>
+        <span class="funnel-kpi">Offer rate: <b><%= Math.round(offers/applied*100) %>%</b></span>
+      <% } %>
+      <% if (rejected > 0) { %>
+        <span class="funnel-kpi funnel-kpi-red">Відмов: <b><%= rejected %></b></span>
+      <% } %>
+    </div>
+  </div>
+  <% } %>
+
+  <!-- Картки відгуків -->
+  <% if (applications.length === 0) { %>
+    <div class="empty" style="margin-top:3rem">
+      <p>Поки що немає відгуків</p>
+      <p class="text-muted">Переходь до <a href="/">списку вакансій</a> і натискай "✉ Відгукнутись"</p>
+    </div>
+  <% } else { %>
+  <div class="tracker-list">
+    <% applications.forEach(a => { %>
+    <div class="tracker-card" id="tcard-<%= a.vacancy_id %>" data-id="<%= a.vacancy_id %>">
+
+      <!-- Шапка картки -->
+      <div class="tcard-head">
+        <div>
+          <span class="source-tag source-<%= a.source.replace(/\./g,'-') %>"><%= a.source %></span>
+          <span class="tcard-status <%= 'st-' + a.status %>"><%= STATUSES.find(s=>s.key===a.status)?.label || a.status %></span>
+        </div>
+        <div class="tcard-dates">
+          <span title="Відгукнулись">✉ <%= a.applied_at?.slice(0,10) %></span>
+          <% if (a.updated_at && a.updated_at !== a.applied_at) { %>
+            <span title="Оновлено">↻ <%= a.updated_at?.slice(0,10) %></span>
+          <% } %>
+        </div>
+      </div>
+
+      <!-- Заголовок -->
+      <h3 class="tcard-title">
+        <a href="<%= a.url %>" target="_blank" rel="noopener"><%= a.title %></a>
+      </h3>
+      <div class="tcard-company">
+        <% if (a.company) { %><span class="company"><%= a.company %></span><% } %>
+        <% if (a.salary) { %><span class="salary"><%= a.salary %></span><% } %>
+        <% if (a.location) { %><span class="location">📍 <%= a.location %></span><% } %>
+      </div>
+
+      <!-- Нотатки -->
+      <% if (a.notes) { %>
+        <p class="tcard-notes"><%= a.notes %></p>
+      <% } %>
+
+      <!-- Наступний крок -->
+      <% if (a.next_step) { %>
+        <div class="tcard-next">
+          <span class="next-step-label">Наступний крок:</span>
+          <span><%= a.next_step %></span>
+          <% if (a.next_date) { %><span class="next-date"><%= a.next_date %></span><% } %>
+        </div>
+      <% } %>
+
+      <!-- Дії -->
+      <div class="tcard-actions">
+        <button class="btn-edit-app" onclick="openEditModal(<%= a.vacancy_id %>)">✎ Редагувати</button>
+        <button class="btn-del-app" onclick="deleteApp(<%= a.vacancy_id %>)">✕ Видалити</button>
+      </div>
+    </div>
+    <% }); %>
+  </div>
+  <% } %>
+</div>
+
+<!-- ─── Edit Modal ────────────────────────────────────── -->
+<div id="edit-modal" class="modal-overlay modal-hidden">
+  <div class="modal-box">
+    <h3 class="modal-title">Редагувати відгук</h3>
+    <input type="hidden" id="m-vacancy-id">
+
+    <label class="modal-label">Статус</label>
+    <select id="m-status" class="select-source" style="width:100%;margin-bottom:.75rem">
+      <option value="applied">✉ Відгукнулись</option>
+      <option value="screening">📋 Скринінг</option>
+      <option value="interview">🎤 Інтерв'ю</option>
+      <option value="offer">🎉 Оффер</option>
+      <option value="rejected">✗ Відмовили</option>
+      <option value="withdrawn">↩ Відкликали</option>
+    </select>
+
+    <label class="modal-label">Нотатки</label>
+    <textarea id="m-notes" class="modal-textarea" placeholder="Деталі, контакти, враження..."></textarea>
+
+    <label class="modal-label">Наступний крок</label>
+    <input type="text" id="m-next-step" class="input-search" style="width:100%;margin-bottom:.5rem"
+           placeholder="Напр. Технічне інтерв'ю">
+
+    <label class="modal-label">Дата кроку</label>
+    <input type="date" id="m-next-date" class="input-search" style="width:100%;margin-bottom:1rem">
+
+    <div style="display:flex;gap:.5rem;justify-content:flex-end">
+      <button onclick="closeModal()" class="btn-cancel-modal">Скасувати</button>
+      <button onclick="saveModal()" class="btn-save-modal">Зберегти</button>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <a href="/analytics">Аналітика компаній</a>
+  &nbsp;·&nbsp;
+  <a href="/logs">Логи парсера</a>
+</footer>
+
+<script>
+// ── Edit Modal ────────────────────────────────────────
+const modal = document.getElementById('edit-modal');
+
+function openEditModal(vacancyId) {
+  document.getElementById('m-vacancy-id').value = vacancyId;
+  // знаходимо дані з картки на сторінці
+  const card  = document.getElementById('tcard-' + vacancyId);
+  const notes = card?.querySelector('.tcard-notes')?.textContent?.trim() || '';
+  const next  = card?.querySelector('.next-step-label')
+                  ? card.querySelector('.tcard-next span:nth-child(2)')?.textContent?.trim() || '' : '';
+  const nextD = card?.querySelector('.next-date')?.textContent?.trim() || '';
+
+  // Статус із класу badge
+  const badge    = card?.querySelector('.tcard-status');
+  const stClass  = badge ? [...badge.classList].find(c => c.startsWith('st-') && c !== 'st-applied'
+                     && c !== 'st-screening' && c !== 'st-interview' && c !== 'st-offer'
+                     && c !== 'st-rejected' && c !== 'st-withdrawn' ? false : true) : null;
+  // fallback — читаємо з data
+  fetch('/api/tracker/check/' + vacancyId)
+    .then(r => r.json())
+    .then(d => {
+      const a = d.application || {};
+      document.getElementById('m-status').value    = a.status    || 'applied';
+      document.getElementById('m-notes').value     = a.notes     || '';
+      document.getElementById('m-next-step').value = a.next_step || '';
+      document.getElementById('m-next-date').value = a.next_date || '';
+      modal.classList.remove('modal-hidden');
+    });
+}
+
+function closeModal() {
+  modal.classList.add('modal-hidden');
+}
+
+function saveModal() {
+  const vacancyId = document.getElementById('m-vacancy-id').value;
+  const body = {
+    status:    document.getElementById('m-status').value,
+    notes:     document.getElementById('m-notes').value,
+    next_step: document.getElementById('m-next-step').value,
+    next_date: document.getElementById('m-next-date').value,
+  };
+  fetch('/tracker/update/' + vacancyId, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+    .then(r => r.json())
+    .then(() => { closeModal(); window.location.reload(); });
+}
+
+function deleteApp(vacancyId) {
+  if (!confirm('Видалити відгук?')) return;
+  fetch('/tracker/delete/' + vacancyId, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+  })
+    .then(r => r.json())
+    .then(() => {
+      const card = document.getElementById('tcard-' + vacancyId);
+      if (card) card.remove();
+    });
+}
+
+// Закриття по кліку поза модальним вікном
+modal.addEventListener('click', e => {
+  if (e.target === modal) closeModal();
+});
+
+// Dark mode
+function toggleDark() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const next = isDark ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('theme', next);
+  document.getElementById('btn-dark').textContent = next === 'dark' ? '☀' : '🌙';
+}
+(function initTheme() {
+  if (localStorage.getItem('theme') === 'dark') {
+    const btn = document.getElementById('btn-dark');
+    if (btn) btn.textContent = '☀';
+  }
+})();
+</script>
+</body>
+</html>

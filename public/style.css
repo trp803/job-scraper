@@ -15,6 +15,20 @@
   --shadow:      0 1px 3px rgba(0,0,0,.06);
 }
 
+/* ─── Dark mode ─────────────────────────────────────── */
+[data-theme="dark"] {
+  --bg:         #0f0f0f;
+  --surface:    #1a1a1a;
+  --border:     #2e2e2e;
+  --text:       #e8e8e8;
+  --text-muted: #888;
+  --accent:     #3b82f6;
+  --new:        #22c55e;
+  --viewed:     #555;
+  --salary:     #4ade80;
+  --shadow:     0 1px 3px rgba(0,0,0,.3);
+}
+
 /* ─── Reset ──────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { font-size: 15px; }
@@ -86,6 +100,33 @@ header {
 }
 .btn-scrape:hover { background: var(--bg); }
 .btn-scrape:disabled { opacity: .5; cursor: not-allowed; }
+
+.btn-export {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: .35rem .8rem;
+  font-size: .85rem;
+  cursor: pointer;
+  color: var(--text-muted);
+  white-space: nowrap;
+  text-decoration: none;
+  transition: background .15s, color .15s;
+}
+.btn-export:hover { background: var(--bg); color: var(--text); text-decoration: none; }
+
+.btn-dark {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: .35rem .6rem;
+  font-size: 1rem;
+  cursor: pointer;
+  color: var(--text-muted);
+  line-height: 1;
+  transition: background .15s;
+}
+.btn-dark:hover { background: var(--bg); }
 
 /* ─── Фільтри ────────────────────────────────────────── */
 .filters {
@@ -738,3 +779,298 @@ footer {
   .results-count { display: none; }
   .header-inner { gap: .75rem; }
 }
+
+/* ─── Трекер відгуків ─────────────────────────────────── */
+.tracker-wrap {
+  max-width: 1100px;
+  margin: 1.5rem auto;
+  padding: 0 1rem;
+}
+
+/* Статистика */
+.tracker-stats {
+  display: flex;
+  gap: .6rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+}
+.tracker-stat-card {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .5rem 1rem;
+  border-radius: var(--radius);
+  border: 2px solid var(--border);
+  background: var(--surface);
+  text-decoration: none;
+  color: var(--text);
+  transition: border-color .15s, box-shadow .15s;
+  cursor: pointer;
+}
+.tracker-stat-card:hover { text-decoration: none; box-shadow: var(--shadow); }
+.tracker-stat-card.active { border-color: var(--accent); background: #eff6ff; }
+.tsc-count { font-weight: 700; font-size: 1.1rem; margin-left: .25rem; }
+.tsc-label { font-size: .82rem; color: var(--text-muted); }
+
+/* Статус-кольори */
+.st-applied   { border-color: #93c5fd; }
+.st-screening { border-color: #fde68a; }
+.st-interview { border-color: #6ee7b7; }
+.st-offer     { border-color: #86efac; background: #f0fdf4; }
+.st-rejected  { border-color: #fca5a5; }
+.st-withdrawn { border-color: #d1d5db; }
+.st-all       { border-color: var(--border); }
+
+/* Список карток */
+.tracker-list {
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+}
+.tracker-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 1rem 1.2rem;
+  box-shadow: var(--shadow);
+}
+
+/* Ліва лінія за статусом */
+.tracker-card:has(.st-applied)   { border-left-color: #3b82f6; }
+.tracker-card:has(.st-screening) { border-left-color: #f59e0b; }
+.tracker-card:has(.st-interview) { border-left-color: #10b981; }
+.tracker-card:has(.st-offer)     { border-left-color: #16a34a; }
+.tracker-card:has(.st-rejected)  { border-left-color: #ef4444; }
+.tracker-card:has(.st-withdrawn) { border-left-color: #9ca3af; }
+
+.tcard-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: .4rem;
+  gap: .5rem;
+}
+.tcard-status {
+  display: inline-block;
+  font-size: .75rem;
+  font-weight: 700;
+  padding: .15rem .55rem;
+  border-radius: 20px;
+  margin-left: .4rem;
+  background: #f3f4f6;
+  color: var(--text-muted);
+}
+.tcard-status.st-applied   { background: #dbeafe; color: #1d4ed8; }
+.tcard-status.st-screening { background: #fef3c7; color: #92400e; }
+.tcard-status.st-interview { background: #d1fae5; color: #065f46; }
+.tcard-status.st-offer     { background: #bbf7d0; color: #14532d; }
+.tcard-status.st-rejected  { background: #fee2e2; color: #991b1b; }
+.tcard-status.st-withdrawn { background: #f3f4f6; color: #6b7280; }
+
+.tcard-dates {
+  display: flex;
+  gap: .75rem;
+  font-size: .75rem;
+  color: var(--text-muted);
+}
+.tcard-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: .3rem;
+}
+.tcard-title a { color: var(--text); }
+.tcard-title a:hover { color: var(--accent); text-decoration: underline; }
+.tcard-company {
+  display: flex;
+  gap: .75rem;
+  flex-wrap: wrap;
+  font-size: .82rem;
+  color: var(--text-muted);
+  margin-bottom: .4rem;
+}
+.tcard-notes {
+  font-size: .83rem;
+  color: var(--text);
+  background: #f9fafb;
+  border-left: 3px solid var(--border);
+  padding: .4rem .65rem;
+  border-radius: 3px;
+  margin: .4rem 0;
+  white-space: pre-line;
+}
+.tcard-next {
+  font-size: .8rem;
+  display: flex;
+  gap: .5rem;
+  align-items: center;
+  margin: .35rem 0;
+}
+.next-step-label { color: var(--text-muted); }
+.next-date {
+  background: #eff6ff;
+  color: var(--accent);
+  padding: .1rem .4rem;
+  border-radius: 4px;
+  font-weight: 600;
+}
+.tcard-actions {
+  display: flex;
+  gap: .5rem;
+  margin-top: .6rem;
+}
+.btn-edit-app {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: .3rem .7rem;
+  font-size: .8rem;
+  cursor: pointer;
+  color: var(--text);
+}
+.btn-edit-app:hover { background: var(--bg); border-color: var(--accent); color: var(--accent); }
+.btn-del-app {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: .3rem .7rem;
+  font-size: .8rem;
+  cursor: pointer;
+  color: var(--text-muted);
+}
+.btn-del-app:hover { background: #fef2f2; border-color: #ef4444; color: #ef4444; }
+
+/* Кнопка "Відгукнутись" на картці вакансії */
+.job-actions { margin-top: .5rem; }
+.btn-apply {
+  background: none;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  color: var(--accent);
+  padding: .3rem .85rem;
+  font-size: .8rem;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.btn-apply:hover { background: var(--accent); color: #fff; }
+.btn-apply:disabled { opacity: .5; cursor: not-allowed; }
+.btn-apply.btn-applied {
+  border-color: var(--new);
+  color: var(--new);
+  cursor: default;
+}
+
+/* ─── Modal ─────────────────────────────────────────────── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.modal-hidden { display: none !important; }
+.modal-box {
+  background: var(--surface);
+  border-radius: 10px;
+  padding: 1.5rem;
+  width: min(480px, 92vw);
+  box-shadow: 0 8px 30px rgba(0,0,0,.15);
+}
+.modal-title { font-size: 1.05rem; font-weight: 700; margin-bottom: 1rem; }
+.modal-label { display: block; font-size: .8rem; color: var(--text-muted); margin-bottom: .25rem; }
+.modal-textarea {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: .5rem .65rem;
+  font-size: .88rem;
+  resize: vertical;
+  min-height: 80px;
+  margin-bottom: .75rem;
+  font-family: inherit;
+}
+.btn-cancel-modal {
+  padding: .45rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: none;
+  cursor: pointer;
+}
+.btn-save-modal {
+  padding: .45rem 1rem;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn-save-modal:hover { opacity: .9; }
+
+/* ─── Funnel (воронка трекера) ──────────────────────────── */
+.funnel-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+.funnel-title {
+  font-size: .9rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  margin-bottom: 1rem;
+}
+.funnel-stages { display: flex; flex-direction: column; gap: .55rem; }
+.funnel-stage  { display: flex; align-items: center; gap: .75rem; }
+.funnel-bar-wrap {
+  flex: 1;
+  background: var(--bg);
+  border-radius: 4px;
+  overflow: hidden;
+  height: 28px;
+}
+.funnel-bar {
+  height: 100%;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  padding: 0 .6rem;
+  min-width: 2rem;
+  transition: width .4s ease;
+}
+.funnel-applied   { background: #3b82f620; border-left: 3px solid #3b82f6; }
+.funnel-screening { background: #f59e0b20; border-left: 3px solid #f59e0b; }
+.funnel-interview { background: #8b5cf620; border-left: 3px solid #8b5cf6; }
+.funnel-offer     { background: #22c55e20; border-left: 3px solid #22c55e; }
+.funnel-count { font-size: .85rem; font-weight: 600; color: var(--text); }
+.funnel-label {
+  width: 130px;
+  font-size: .82rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+}
+.funnel-conv {
+  font-size: .75rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  padding: .05rem .4rem;
+  color: var(--text-muted);
+}
+.funnel-summary {
+  display: flex;
+  gap: 1.5rem;
+  margin-top: .85rem;
+  padding-top: .75rem;
+  border-top: 1px solid var(--border);
+}
+.funnel-kpi { font-size: .85rem; color: var(--text-muted); }
+.funnel-kpi b { color: var(--text); }
+.funnel-kpi-red b { color: #ef4444; }

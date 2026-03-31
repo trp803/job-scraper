@@ -2,7 +2,7 @@
 // rabota.ua — SPA на React, но у них есть API для поиска вакансий
 // Используем их внутренний API (он публичен, без ключа)
 
-const { get, randomDelay, cleanText } = require('./utils');
+const { get, randomDelay, cleanText, isDevOpsTitle } = require('./utils');
 
 const SOURCE = 'rabota.ua';
 
@@ -70,9 +70,7 @@ async function scrape() {
       if (!title) continue;
 
       // Перевіряємо що вакансія стосується DevOps (API rabota.ua не фільтрує точно)
-      const titleLower = title.toLowerCase();
-      const isRelevant = KEYWORDS.some(kw => titleLower.includes(kw));
-      if (!isRelevant) continue;
+      if (!isDevOpsTitle(title)) continue;
 
       results.push({
         source: SOURCE,

@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>DevOps Jobs — Ukraine</title>
   <link rel="stylesheet" href="/style.css">
+  <script>if(localStorage.getItem('theme')==='dark')document.documentElement.setAttribute('data-theme','dark')</script>
 </head>
 <body>
 
@@ -26,6 +27,7 @@
     <nav class="tab-nav">
       <a href="/" class="tab-link active">Вакансії</a>
       <a href="/analytics" class="tab-link">Аналітика</a>
+      <a href="/tracker" class="tab-link">Відгуки</a>
       <a href="/logs" class="tab-link">Логи</a>
     </nav>
     <div class="stats">
@@ -33,6 +35,8 @@
       <span>Сьогодні: <b><%= stats.today %></b></span>
     </div>
     <div class="scraper-status" id="scraper-status"></div>
+    <a class="btn-export" href="/export/csv?source=<%= filter.source %>&search=<%= filter.search||'' %>&new=<%= filter.onlyNew?'1':'' %>" title="Завантажити CSV">⬇ CSV</a>
+    <button class="btn-dark" id="btn-dark" onclick="toggleDark()" title="Темна тема">🌙</button>
     <button class="btn-scrape" id="btn-scrape" onclick="runScraper()">↻ Оновити</button>
   </div>
 </header>
@@ -162,6 +166,13 @@
     <% if (v.description) { %>
       <p class="job-desc"><%= v.description %></p>
     <% } %>
+
+    <!-- Рядок 6: Дія відгук -->
+    <div class="job-actions">
+      <button class="btn-apply" onclick="applyJob(<%= v.id %>)" id="apply-btn-<%= v.id %>">
+        ✉ Відгукнутись
+      </button>
+    </div>
 
   </article>
   <% }) %>
@@ -309,6 +320,68 @@ function updateBadge(count) {
 
 // Підключаємо SSE при завантаженні сторінки
 connectSSE();
+
+// ── Dark mode ──────────────────────────────────────────
+function toggleDark() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const next = isDark ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('theme', next);
+  document.getElementById('btn-dark').textContent = next === 'dark' ? '☀' : '🌙';
+}
+(function initTheme() {
+  const saved = localStorage.getItem('theme') || 'light';
+  if (saved === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    const btn = document.getElementById('btn-dark');
+    if (btn) btn.textContent = '☀';
+  }
+})();
+
+// ── Відгук на вакансію ─────────────────────────────────────────
+function applyJob(id) {
+  const btn = document.getElementById(`apply-btn-${id}`);
+  btn.disabled = true;
+  fetch('/tracker/apply', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ vacancy_id: id, status: 'applied' }),
+  })
+    .then(r => r.json())
+    .then(d => {
+      if (d.ok) {
+        btn.textContent = '✓ Відгукнулись';
+        btn.classList.add('btn-applied');
+      } else {
+        btn.disabled = false;
+      }
+    })
+    .catch(() => { btn.disabled = false; });
+}
+
+// Перевіряємо відгукнуті вакансії на поточній сторінці
+(function checkApplied() {
+  const ids = Array.from(document.querySelectorAll('[id^="apply-btn-"]'))
+    .map(el => el.id.replace('apply-btn-', ''));
+  ids.forEach(id => {
+    fetch(`/api/tracker/check/${id}`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.application) {
+          const btn = document.getElementById(`apply-btn-${id}`);
+          if (btn) {
+            btn.textContent = '✓ ' + statusLabel(d.application.status);
+            btn.classList.add('btn-applied');
+          }
+        }
+      });
+  });
+})();
+
+function statusLabel(s) {
+  const map = { applied: 'Відгукнулись', screening: 'Скринінг', interview: "Інтерв'ю", offer: 'Оффер', rejected: 'Відмовили', withdrawn: 'Відкликали' };
+  return map[s] || s;
+}
 </script>
 
 </body>

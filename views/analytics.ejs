@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Аналітика вакансій — DevOps Jobs</title>
   <link rel="stylesheet" href="/style.css">
+  <script>if(localStorage.getItem('theme')==='dark')document.documentElement.setAttribute('data-theme','dark')</script>
 </head>
 <body>
 
@@ -19,8 +20,10 @@
     <nav class="tab-nav">
       <a href="/" class="tab-link">Вакансії</a>
       <a href="/analytics" class="tab-link active">Аналітика</a>
+      <a href="/tracker" class="tab-link">Відгуки</a>
       <a href="/logs" class="tab-link">Логи</a>
     </nav>
+    <button class="btn-dark" id="btn-dark" onclick="toggleDark()" title="Темна тема">🌙</button>
   </div>
 </header>
 
@@ -303,6 +306,21 @@ document.querySelectorAll('.rating-table tbody tr').forEach(tr => {
     if (link) window.location.href = link.href;
   });
 });
+
+// Dark mode
+function toggleDark() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const next = isDark ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('theme', next);
+  document.getElementById('btn-dark').textContent = next === 'dark' ? '☀' : '🌙';
+}
+(function initTheme() {
+  if (localStorage.getItem('theme') === 'dark') {
+    const btn = document.getElementById('btn-dark');
+    if (btn) btn.textContent = '☀';
+  }
+})();
 </script>
 
 </body>

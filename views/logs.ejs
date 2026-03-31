@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <title>Логи парсера — DevOps Jobs</title>
   <link rel="stylesheet" href="/style.css">
+  <script>if(localStorage.getItem('theme')==='dark')document.documentElement.setAttribute('data-theme','dark')</script>
 </head>
 <body>
 
@@ -15,6 +16,7 @@
       </a>
     </div>
     <span style="color:var(--text-muted)">Логи парсера</span>
+    <button class="btn-dark" id="btn-dark" onclick="toggleDark()" title="Темна тема" style="margin-left:auto">🌙</button>
   </div>
 </header>
 
@@ -50,6 +52,22 @@
 
   <p style="margin-top:1.5rem"><a href="/">← Назад до вакансій</a></p>
 </main>
+
+<script>
+function toggleDark() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const next = isDark ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('theme', next);
+  document.getElementById('btn-dark').textContent = next === 'dark' ? '☀' : '🌙';
+}
+(function initTheme() {
+  if (localStorage.getItem('theme') === 'dark') {
+    const btn = document.getElementById('btn-dark');
+    if (btn) btn.textContent = '☀';
+  }
+})();
+</script>
 
 </body>
 </html>
