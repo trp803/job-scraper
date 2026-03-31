@@ -393,6 +393,32 @@
     .versions-menu-item:last-child { border-bottom: none; }
     .versions-menu-empty { padding: .7rem .9rem; font-size: .83rem; color: var(--text-muted, #94a3b8); }
 
+    /* ─── Comparison tab ────────────────────────────── */
+    .comp-score-wrap {
+      display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;
+      padding: .8rem; background: var(--card-bg, #fff);
+      border-radius: 8px; border: 1px solid var(--border, #e2e8f0);
+    }
+    .comp-score-circle {
+      width: 76px; height: 76px; border-radius: 50%; border: 5px solid;
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; flex-shrink: 0;
+    }
+    .comp-score-num   { font-size: 1.3rem; font-weight: 700; line-height: 1; }
+    .comp-score-lbl   { font-size: .6rem; color: var(--text-muted, #94a3b8); margin-top: .1rem; }
+    .comp-score-meta  { font-size: .82rem; line-height: 1.7; color: var(--text, #1e293b); }
+    .comp-score-meta .muted { color: var(--text-muted, #64748b); }
+    .comp-categories  { display: flex; flex-direction: column; gap: .6rem; }
+    .comp-cat         { padding: .45rem 0; border-bottom: 1px solid var(--border, #f1f5f9); }
+    .comp-cat:last-child { border-bottom: none; }
+    .comp-cat-header  { display: flex; justify-content: space-between; align-items: center; margin-bottom: .2rem; }
+    .comp-cat-name    { font-size: .82rem; font-weight: 600; color: var(--text, #1e293b); }
+    .comp-cat-score   { font-size: .8rem; font-weight: 700; }
+    .comp-bar-bg      { height: 5px; background: var(--border, #e2e8f0); border-radius: 3px; overflow: hidden; margin-bottom: .3rem; }
+    .comp-bar-fill    { height: 100%; border-radius: 3px; transition: width .3s; }
+    .comp-missing     { display: flex; flex-wrap: wrap; gap: .25rem; margin-top: .25rem; }
+    .comp-all-ok      { font-size: .75rem; color: #16a34a; margin-top: .2rem; }
+
     /* ─── ATS tab ────────────────────────────────────── */
     .ats-score-bar { height: 8px; border-radius: 4px; background: var(--border, #e2e8f0); overflow: hidden; margin-bottom: .4rem; }
     .ats-score-fill { height: 100%; border-radius: 4px; transition: width .4s; }
@@ -483,6 +509,7 @@
         <button class="re-left-tab" id="tab-btn-coverletter" onclick="switchTab('coverletter')">
           ✉ Лист
         </button>
+        <button class="re-left-tab" id="tab-btn-comparison" onclick="switchTab('comparison')">Порівняння</button>
         <button class="re-left-tab" id="tab-btn-ats" onclick="switchTab('ats')">ATS</button>
         <% if (vacancy && vacancy.url) { %>
           <a href="<%= vacancy.url %>" target="_blank" class="vacancy-link" style="padding:.4rem .7rem;font-size:.8rem;display:flex;align-items:center;white-space:nowrap">відкрити ↗</a>
@@ -522,6 +549,18 @@
         </button>
         <div id="cl-content">
           <p class="cl-hint">Claude AI напише супровідний лист на основі вакансії та твого резюме.<br><br>Переконайся що вакансія відкрита на вкладці "Вакансія" або вставлена вручну.</p>
+        </div>
+      </div>
+
+      <!-- Panel: Comparison -->
+      <div class="re-tab-panel" id="panel-comparison">
+        <button class="kw-analyze-btn" onclick="runComparison()">Порівняти резюме з вакансією</button>
+        <div id="comp-results">
+          <div class="kw-empty">
+            Детальне порівняння по категоріях:<br><br>
+            <b style="color:var(--text,#1e293b)">Cloud, CI/CD, IaC, Linux...</b><br><br>
+            Побачиш де сильний, а де прогалини — і одразу виправиш.
+          </div>
         </div>
       </div>
 
@@ -711,10 +750,99 @@ function openOverleaf() {
 
 // ─── Tab switcher ─────────────────────────────────────────────────
 function switchTab(name) {
-  ['vacancy', 'keywords', 'coverletter', 'ats'].forEach(t => {
+  ['vacancy', 'keywords', 'coverletter', 'comparison', 'ats'].forEach(t => {
     document.getElementById('panel-' + t)?.classList.toggle('active', t === name);
     document.getElementById('tab-btn-' + t)?.classList.toggle('active', t === name);
   });
+}
+
+// ─── Порівняння резюме з вакансією ───────────────────────────────
+function runComparison() {
+  const vacText = getVacancyText();
+  const latex   = editor.getValue();
+  const results = document.getElementById('comp-results');
+
+  if (!vacText.trim()) {
+    switchTab('vacancy');
+    const ta = document.getElementById('vacancy-paste');
+    if (ta) ta.focus();
+    return;
+  }
+
+  // Категорійний аналіз
+  const categories  = [];
+  let totalFound    = 0;
+  let totalMatched  = 0;
+
+  for (const [cat, keywords] of Object.entries(KW_DB)) {
+    const inVacancy = [], inBoth = [], missing = [];
+    for (const kw of keywords) {
+      const rx = new RegExp('(?<![\\w-])' + escapeRx(kw) + '(?![\\w-])', 'i');
+      if (rx.test(vacText)) {
+        inVacancy.push(kw);
+        if (rx.test(latex)) inBoth.push(kw);
+        else missing.push(kw);
+      }
+    }
+    if (inVacancy.length > 0) {
+      const score = Math.round(inBoth.length / inVacancy.length * 100);
+      categories.push({ cat, inVacancy, inBoth, missing, score });
+      totalFound   += inVacancy.length;
+      totalMatched += inBoth.length;
+    }
+  }
+
+  if (categories.length === 0) {
+    results.innerHTML = '<div class="kw-empty">DevOps ключових слів у вакансії не знайдено.<br>Вставте більше тексту з описом позиції.</div>';
+    return;
+  }
+
+  const overall     = Math.round(totalMatched / totalFound * 100);
+  const scoreColor  = overall >= 70 ? '#16a34a' : overall >= 45 ? '#d97706' : '#dc2626';
+
+  // Досвід і рівень із тексту вакансії
+  const expMatch  = vacText.match(/(\d+)\+?\s*(?:years?|роки?|рок[іу]|год[иі]|р\.?\s+досвід)/i);
+  const reqExp    = expMatch ? expMatch[1] : null;
+  const levelMatch = vacText.match(/\b(intern|junior|middle|senior|lead|staff|principal)\b/i);
+  const reqLevel  = levelMatch ? levelMatch[1] : null;
+
+  let html = `
+    <div class="comp-score-wrap">
+      <div class="comp-score-circle" style="border-color:${scoreColor}">
+        <span class="comp-score-num" style="color:${scoreColor}">${overall}%</span>
+        <span class="comp-score-lbl">збіг</span>
+      </div>
+      <div class="comp-score-meta">
+        <span class="muted">Знайдено у вакансії:</span> <b>${totalFound}</b><br>
+        <span class="muted">Є в резюме:</span> <b style="color:#16a34a">${totalMatched}</b><br>
+        <span class="muted">Відсутніх:</span> <b style="color:#dc2626">${totalFound - totalMatched}</b>
+        ${reqExp   ? `<br><span class="muted">Досвід:</span> <b>${reqExp}+ р.</b>` : ''}
+        ${reqLevel ? `<br><span class="muted">Рівень:</span> <b>${reqLevel}</b>` : ''}
+      </div>
+    </div>
+    <div class="comp-categories">`;
+
+  // Сортуємо: спочатку категорії з пропущеними, потім повні
+  categories.sort((a, b) => (b.missing.length - a.missing.length) || (b.inVacancy.length - a.inVacancy.length));
+
+  for (const c of categories) {
+    const clr = c.score >= 70 ? '#16a34a' : c.score >= 40 ? '#d97706' : '#dc2626';
+    html += `
+      <div class="comp-cat">
+        <div class="comp-cat-header">
+          <span class="comp-cat-name">${c.cat}</span>
+          <span class="comp-cat-score" style="color:${clr}">${c.score}% &nbsp;<small style="font-weight:400;color:var(--text-muted)">${c.inBoth.length}/${c.inVacancy.length}</small></span>
+        </div>
+        <div class="comp-bar-bg"><div class="comp-bar-fill" style="width:${c.score}%;background:${clr}"></div></div>
+        ${c.missing.length > 0
+          ? `<div class="comp-missing">${c.missing.map(kw => `<span class="kw-chip missing" data-kw="${kw.replace(/"/g,'&quot;')}" onclick="insertKw(this)" title="Клік → вставити в редактор">${kw}</span>`).join('')}</div>`
+          : `<div class="comp-all-ok">✓ Все є в резюме</div>`
+        }
+      </div>`;
+  }
+
+  html += '</div>';
+  results.innerHTML = html;
 }
 
 // ─── PDF Preview ──────────────────────────────────────────────────
