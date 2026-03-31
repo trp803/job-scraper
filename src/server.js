@@ -271,10 +271,15 @@ app.get('/vacancy/:id', (req, res) => {
   const application = db.getApplicationByVacancy(id);
   const note        = db.getVacancyNote(id);
   const baseRes     = db.getBaseResume();
-  const scoreData   = baseRes?.latex_code
-    ? calcScore([vacancy.title, vacancy.company, vacancy.description].filter(Boolean).join(' '), baseRes.latex_code)
+  const baseTex     = baseRes?.latex_code || '';
+  const scoreData   = baseTex
+    ? calcScore([vacancy.title, vacancy.company, vacancy.description].filter(Boolean).join(' '), baseTex)
     : null;
-  res.render('vacancy', { vacancy: enriched, application: application || null, note, scoreData });
+  // Витягуємо ім'я з LaTeX шаблону для підстановки в листи
+  const nameMatch   = baseTex.match(/\\textbf\{\\Huge\s*\\scshape\s+([^}]+)\}/) ||
+                      baseTex.match(/\\name\{([^}]+)\}/);
+  const coverName   = nameMatch ? nameMatch[1].trim() : '';
+  res.render('vacancy', { vacancy: enriched, application: application || null, note, scoreData, coverName });
 });
 
 // ─── Збереження нотатки до вакансії ──────────────────────────────
