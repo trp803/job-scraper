@@ -5,11 +5,10 @@ const db = require('../db');
 const workua   = require('./workua');
 const douua    = require('./douua');
 const djinni   = require('./djinni');
-const hhapi    = require('./hhapi');
 const rabotaua = require('./rabotaua');
 
 // Список всех активных парсеров
-const SCRAPERS = [hhapi, douua, djinni, workua, rabotaua];
+const SCRAPERS = [douua, djinni, workua, rabotaua];
 
 async function runAll() {
   console.log(`\n${'='.repeat(50)}`);
