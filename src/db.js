@@ -92,6 +92,14 @@ db.exec(`
     text        TEXT    NOT NULL DEFAULT '',
     updated_at  TEXT    DEFAULT (datetime('now'))
   );
+
+  -- Версії резюме (до 10 на резюме)
+  CREATE TABLE IF NOT EXISTS resume_versions (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    resume_id  INTEGER NOT NULL REFERENCES resumes(id) ON DELETE CASCADE,
+    latex_code TEXT    NOT NULL,
+    saved_at   TEXT    DEFAULT (datetime('now'))
+  );
 `);
 
 // ─── Вакансии ───────────────────────────────────────────
@@ -484,20 +492,45 @@ function getResumeById(id) {
   `).get(id);
 }
 
+function _saveVersion(resumeId, latexCode) {
+  const last = db.prepare('SELECT latex_code FROM resume_versions WHERE resume_id = ? ORDER BY id DESC LIMIT 1').get(resumeId);
+  if (last && last.latex_code === latexCode) return; // без змін — не зберігаємо
+  db.prepare('INSERT INTO resume_versions (resume_id, latex_code) VALUES (?, ?)').run(resumeId, latexCode);
+  // Тримаємо тільки 10 останніх версій
+  db.prepare(`
+    DELETE FROM resume_versions WHERE resume_id = ? AND id NOT IN (
+      SELECT id FROM resume_versions WHERE resume_id = ? ORDER BY id DESC LIMIT 10
+    )
+  `).run(resumeId, resumeId);
+}
+
 function upsertResume({ id, vacancy_id, name, latex_code, is_base = 0 }) {
   if (id) {
     db.prepare(`
       UPDATE resumes SET name = ?, latex_code = ?, vacancy_id = ?, updated_at = datetime('now')
       WHERE id = ?
     `).run(name, latex_code, vacancy_id || null, id);
+    if (!is_base) _saveVersion(id, latex_code);
     return id;
   } else {
     const result = db.prepare(`
       INSERT INTO resumes (vacancy_id, name, latex_code, is_base)
       VALUES (?, ?, ?, ?)
     `).run(vacancy_id || null, name, latex_code, is_base ? 1 : 0);
-    return result.lastInsertRowid;
+    const newId = result.lastInsertRowid;
+    if (!is_base) _saveVersion(newId, latex_code);
+    return newId;
   }
+}
+
+function getResumeVersions(resumeId) {
+  return db.prepare(`
+    SELECT id, saved_at FROM resume_versions WHERE resume_id = ? ORDER BY id DESC LIMIT 10
+  `).all(resumeId);
+}
+
+function getResumeVersionCode(versionId) {
+  return db.prepare('SELECT latex_code FROM resume_versions WHERE id = ?').get(versionId);
 }
 
 function deleteResume(id) {
@@ -530,4 +563,6 @@ module.exports = {
   getResumeById,
   upsertResume,
   deleteResume,
+  getResumeVersions,
+  getResumeVersionCode,
 };

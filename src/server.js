@@ -576,7 +576,10 @@ app.post('/resume/compile', (req, res) => {
       const displayName = (name || 'resume').trim() || 'resume';
       const encoded     = encodeURIComponent(displayName + '.pdf');
       res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `attachment; filename="resume.pdf"; filename*=UTF-8''${encoded}`);
+      const isInline = req.query.inline === '1';
+      res.setHeader('Content-Disposition', isInline
+        ? 'inline; filename="preview.pdf"'
+        : `attachment; filename="resume.pdf"; filename*=UTF-8''${encoded}`);
       res.send(pdf);
     });
   });
@@ -647,6 +650,19 @@ app.get('/cover-letter/:vacancyId', requireAuth, (req, res) => {
 app.get('/api/tracker/history/:vacancyId', (req, res) => {
   const history = db.getApplicationHistory(parseInt(req.params.vacancyId));
   res.json({ ok: true, history });
+});
+
+// ─── Версії резюме ────────────────────────────────────────────────
+
+app.get('/api/resume/versions/:id', (req, res) => {
+  const versions = db.getResumeVersions(parseInt(req.params.id));
+  res.json({ ok: true, versions });
+});
+
+app.get('/api/resume/version/:versionId', (req, res) => {
+  const v = db.getResumeVersionCode(parseInt(req.params.versionId));
+  if (!v) return res.status(404).json({ ok: false });
+  res.json({ ok: true, latex_code: v.latex_code });
 });
 
 // ─── Генерація супровідного листа через Claude API ───────────────

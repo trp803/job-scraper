@@ -230,6 +230,40 @@
     /* ─── Overleaf form (hidden, submit via JS) ──────────── */
     #overleaf-form { display: none; }
 
+    /* ─── Cover letter ──────────────────────────────────── */
+    .cl-generate-btn {
+      display: block; width: 100%; padding: .6rem;
+      margin-bottom: .8rem; border-radius: 7px; font-size: .85rem;
+      font-weight: 600; background: #7c3aed; color: #fff;
+      border: none; cursor: pointer; transition: background .15s;
+    }
+    .cl-generate-btn:hover { background: #6d28d9; }
+    .cl-generate-btn:disabled { background: #c4b5fd; cursor: not-allowed; }
+    .cl-textarea {
+      width: 100%;
+      flex: 1;
+      border: 1px solid var(--border, #cbd5e1);
+      border-radius: 6px;
+      padding: .7rem;
+      font-size: .85rem;
+      line-height: 1.6;
+      resize: none;
+      background: var(--input-bg, #fff);
+      color: var(--text, #1e293b);
+      font-family: inherit;
+      min-height: 200px;
+    }
+    .cl-textarea:focus { outline: 2px solid #7c3aed; border-color: transparent; }
+    .cl-actions { display: flex; gap: .5rem; margin-top: .5rem; flex-shrink: 0; }
+    .cl-copy-btn {
+      padding: .4rem .9rem; border-radius: 6px; font-size: .82rem;
+      background: transparent; color: var(--text-muted, #64748b);
+      border: 1px solid var(--border, #cbd5e1); cursor: pointer;
+    }
+    .cl-copy-btn:hover { background: var(--hover, #f1f5f9); }
+    .cl-hint { font-size: .82rem; color: var(--text-muted, #94a3b8); line-height: 1.5; }
+    .cl-error { font-size: .82rem; color: #dc2626; padding: .5rem; background: #fee2e2; border-radius: 6px; }
+
     /* ─── Left panel tabs ──────────────────────────────── */
     .re-left-tabs {
       display: flex;
@@ -305,6 +339,68 @@
       background: #f59e0b; color: #fff; border-radius: 10px;
       padding: .05rem .4rem; font-size: .7rem; font-weight: 600;
     }
+
+    /* ─── Preview panel ──────────────────────────────── */
+    .re-right { flex-direction: row; }
+    .re-editor-section { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .re-preview-panel {
+      width: 45%; min-width: 280px; max-width: 600px;
+      border-left: 1px solid var(--border, #e2e8f0);
+      display: flex; flex-direction: column; background: var(--bg, #f8fafc);
+    }
+    .re-preview-header {
+      display: flex; align-items: center; gap: .4rem; padding: .5rem .8rem;
+      border-bottom: 1px solid var(--border, #e2e8f0);
+      background: var(--card-bg, #fff); font-size: .82rem;
+      color: var(--text-muted, #64748b); flex-shrink: 0;
+    }
+    .re-preview-header span { flex: 1; font-weight: 500; color: var(--text, #1e293b); }
+    .btn-preview-refresh, .btn-preview-close {
+      padding: .25rem .55rem; border-radius: 5px; font-size: .8rem;
+      border: 1px solid var(--border, #cbd5e1); background: transparent;
+      color: var(--text-muted, #64748b); cursor: pointer;
+    }
+    .btn-preview-refresh:hover, .btn-preview-close:hover { background: var(--hover, #f1f5f9); }
+    .re-preview-loading {
+      flex: 1; display: flex; align-items: center; justify-content: center;
+      font-size: .85rem; color: var(--text-muted, #94a3b8); padding: 1rem; text-align: center;
+    }
+    .re-preview-iframe { flex: 1; width: 100%; border: none; background: #fff; }
+    .btn-preview {
+      padding: .4rem .9rem; border-radius: 6px; font-size: .85rem;
+      background: transparent; color: var(--text-muted, #64748b);
+      border: 1px solid var(--border, #cbd5e1); cursor: pointer;
+    }
+    .btn-preview:hover { background: var(--hover, #f1f5f9); }
+    .btn-preview.active { background: #eff6ff; color: #2563eb; border-color: #bfdbfe; }
+
+    /* ─── Versions dropdown ──────────────────────────── */
+    .versions-wrap { position: relative; }
+    .versions-menu {
+      position: absolute; top: 110%; right: 0;
+      background: var(--card-bg, #fff); border: 1px solid var(--border, #e2e8f0);
+      border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,.12);
+      z-index: 200; min-width: 210px; overflow: hidden; display: none;
+    }
+    .versions-menu.open { display: block; }
+    .versions-menu-item {
+      display: block; width: 100%; text-align: left; padding: .55rem .9rem;
+      font-size: .83rem; color: var(--text, #1e293b); border: none;
+      background: transparent; cursor: pointer;
+      border-bottom: 1px solid var(--border, #f1f5f9);
+    }
+    .versions-menu-item:hover { background: var(--hover, #f1f5f9); }
+    .versions-menu-item:last-child { border-bottom: none; }
+    .versions-menu-empty { padding: .7rem .9rem; font-size: .83rem; color: var(--text-muted, #94a3b8); }
+
+    /* ─── ATS tab ────────────────────────────────────── */
+    .ats-score-bar { height: 8px; border-radius: 4px; background: var(--border, #e2e8f0); overflow: hidden; margin-bottom: .4rem; }
+    .ats-score-fill { height: 100%; border-radius: 4px; transition: width .4s; }
+    .ats-score-text { font-size: .82rem; color: var(--text-muted, #64748b); margin-bottom: .8rem; }
+    .ats-item { display: flex; align-items: flex-start; gap: .5rem; font-size: .84rem; padding: .28rem 0; }
+    .ats-icon { font-size: .95rem; flex-shrink: 0; width: 1.4rem; }
+    .ats-label { flex: 1; color: var(--text, #1e293b); }
+    .ats-hint { font-size: .78rem; color: var(--text-muted, #94a3b8); margin-top: .1rem; }
   </style>
 </head>
 <body>
@@ -346,10 +442,19 @@
   <span class="save-status" id="save-status">Збережено!</span>
 
   <button class="btn-copy" onclick="copyLatex()" title="Копіювати LaTeX код">Копіювати</button>
-  <button class="btn-compile" id="btn-compile" onclick="compilePdf()" title="Згенерувати PDF через pdflatex">
+  <button class="btn-compile" id="btn-compile" onclick="compilePdf()" title="Завантажити PDF">
     <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8.5 7.5c0 .83-.67 1.5-1.5 1.5H9v2H7.5V7H10c.83 0 1.5.67 1.5 1.5v1zm5 2c0 .83-.67 1.5-1.5 1.5h-2.5V7H15c.83 0 1.5.67 1.5 1.5v3zm4-3H19v1h1.5V11H19v2h-1.5V7h3v1.5zM9 9.5h1v-1H9v1zM4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm10 5.5h1v-3h-1v3z"/></svg>
     PDF
   </button>
+  <button class="btn-preview" id="btn-preview" onclick="togglePreview()" title="Показати PDF перегляд в редакторі">
+    👁 Перегляд
+  </button>
+  <% if (!isBase) { %>
+  <div class="versions-wrap">
+    <button class="btn-copy" id="btn-versions" onclick="toggleVersionsMenu()">Версії ▾</button>
+    <div class="versions-menu" id="versions-menu"></div>
+  </div>
+  <% } %>
   <button class="btn-overleaf" onclick="openOverleaf()" title="Скомпілювати в Overleaf">
     <svg width="14" height="14" viewBox="0 0 50 50" fill="currentColor"><path d="M25 2C12.3 2 2 12.3 2 25s10.3 23 23 23 23-10.3 23-23S37.7 2 25 2zm0 4c10.5 0 19 8.5 19 19s-8.5 19-19 19S6 35.5 6 25 14.5 6 25 6zm-6 8v22l16-11-16-11z"/></svg>
     Overleaf
@@ -375,6 +480,10 @@
         <button class="re-left-tab" id="tab-btn-keywords" onclick="switchTab('keywords')">
           Ключові слова <span id="kw-badge" class="kw-badge" style="display:none"></span>
         </button>
+        <button class="re-left-tab" id="tab-btn-coverletter" onclick="switchTab('coverletter')">
+          ✉ Лист
+        </button>
+        <button class="re-left-tab" id="tab-btn-ats" onclick="switchTab('ats')">ATS</button>
         <% if (vacancy && vacancy.url) { %>
           <a href="<%= vacancy.url %>" target="_blank" class="vacancy-link" style="padding:.4rem .7rem;font-size:.8rem;display:flex;align-items:center;white-space:nowrap">відкрити ↗</a>
         <% } %>
@@ -406,6 +515,28 @@
         <% } %>
       </div>
 
+      <!-- Panel: Cover Letter -->
+      <div class="re-tab-panel" id="panel-coverletter">
+        <button class="cl-generate-btn" id="btn-generate-cl" onclick="generateCoverLetter()">
+          Згенерувати супровідний лист
+        </button>
+        <div id="cl-content">
+          <p class="cl-hint">Claude AI напише супровідний лист на основі вакансії та твого резюме.<br><br>Переконайся що вакансія відкрита на вкладці "Вакансія" або вставлена вручну.</p>
+        </div>
+      </div>
+
+      <!-- Panel: ATS -->
+      <div class="re-tab-panel" id="panel-ats">
+        <button class="kw-analyze-btn" onclick="runAtsCheck()">Перевірити ATS сумісність</button>
+        <div id="ats-results">
+          <div class="kw-empty">
+            ATS — автоматична система відбору резюме.<br><br>
+            Перевіряє чи зможе система правильно прочитати твоє резюме.<br><br>
+            Натисни кнопку для аналізу.
+          </div>
+        </div>
+      </div>
+
       <!-- Panel: Keywords -->
       <div class="re-tab-panel" id="panel-keywords">
         <button class="kw-analyze-btn" id="btn-analyze" onclick="analyzeVacancy()">
@@ -422,13 +553,29 @@
 
     </div>
 
-    <!-- Right: CodeMirror LaTeX editor -->
+    <!-- Right: LaTeX editor + PDF preview -->
     <div class="re-right">
-      <div class="re-right-header">
-        <span>LaTeX редактор</span>
-        <span style="margin-left:auto;font-size:.78rem">Ctrl+S — зберегти &nbsp;|&nbsp; Ctrl+/ — коментар</span>
+
+      <!-- Editor section -->
+      <div class="re-editor-section">
+        <div class="re-right-header">
+          <span>LaTeX редактор</span>
+          <span style="margin-left:auto;font-size:.78rem">Ctrl+S — зберегти &nbsp;|&nbsp; Ctrl+/ — коментар</span>
+        </div>
+        <div class="re-editor-wrap" id="editor-wrap"></div>
       </div>
-      <div class="re-editor-wrap" id="editor-wrap"></div>
+
+      <!-- PDF Preview panel (hidden by default) -->
+      <div class="re-preview-panel" id="re-preview-panel" style="display:none">
+        <div class="re-preview-header">
+          <span>PDF Перегляд</span>
+          <button class="btn-preview-refresh" id="btn-preview-refresh" onclick="refreshPreview()">↻ Оновити</button>
+          <button class="btn-preview-close" onclick="togglePreview()">✕</button>
+        </div>
+        <div id="preview-placeholder" class="re-preview-loading">Натисни ↻ щоб скомпілювати</div>
+        <iframe id="preview-iframe" class="re-preview-iframe" style="display:none"></iframe>
+      </div>
+
     </div>
 
   </div>
@@ -493,6 +640,9 @@ function saveResume() {
         }
         status.classList.add('visible');
         setTimeout(() => status.classList.remove('visible'), 2000);
+        // Скидаємо кеш версій щоб при наступному відкритті завантажити свіжий список
+        const versMenu = document.getElementById('versions-menu');
+        if (versMenu) delete versMenu.dataset.loaded;
       } else {
         alert('Помилка збереження: ' + (d.error || ''));
       }
@@ -561,9 +711,205 @@ function openOverleaf() {
 
 // ─── Tab switcher ─────────────────────────────────────────────────
 function switchTab(name) {
-  ['vacancy', 'keywords'].forEach(t => {
-    document.getElementById('panel-' + t).classList.toggle('active', t === name);
-    document.getElementById('tab-btn-' + t).classList.toggle('active', t === name);
+  ['vacancy', 'keywords', 'coverletter', 'ats'].forEach(t => {
+    document.getElementById('panel-' + t)?.classList.toggle('active', t === name);
+    document.getElementById('tab-btn-' + t)?.classList.toggle('active', t === name);
+  });
+}
+
+// ─── PDF Preview ──────────────────────────────────────────────────
+let previewVisible = false;
+
+function togglePreview() {
+  previewVisible = !previewVisible;
+  const panel = document.getElementById('re-preview-panel');
+  const btn   = document.getElementById('btn-preview');
+  panel.style.display = previewVisible ? 'flex' : 'none';
+  btn.classList.toggle('active', previewVisible);
+  btn.textContent = previewVisible ? '👁 Сховати' : '👁 Перегляд';
+  if (previewVisible) refreshPreview();
+}
+
+async function refreshPreview() {
+  const iframe      = document.getElementById('preview-iframe');
+  const placeholder = document.getElementById('preview-placeholder');
+  const btn         = document.getElementById('btn-preview-refresh');
+  if (btn) { btn.textContent = '...'; btn.disabled = true; }
+  placeholder.style.display = 'flex';
+  placeholder.textContent   = 'Компіляція PDF...';
+  iframe.style.display      = 'none';
+
+  try {
+    const resp = await fetch('/resume/compile?inline=1', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ latex_code: editor.getValue(), name: 'preview' }),
+    });
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      placeholder.textContent = 'Помилка компіляції:\n' + (err.error || '').slice(0, 300);
+      return;
+    }
+    const blob = await resp.blob();
+    const url  = URL.createObjectURL(blob);
+    if (iframe._prevUrl) URL.revokeObjectURL(iframe._prevUrl);
+    iframe._prevUrl      = url;
+    iframe.src           = url;
+    placeholder.style.display = 'none';
+    iframe.style.display = 'block';
+  } catch (e) {
+    placeholder.textContent = 'Помилка з\'єднання: ' + e.message;
+  } finally {
+    if (btn) { btn.textContent = '↻ Оновити'; btn.disabled = false; }
+  }
+}
+
+// ─── Versions ─────────────────────────────────────────────────────
+let versionsMenuOpen = false;
+
+async function toggleVersionsMenu() {
+  const menu = document.getElementById('versions-menu');
+  if (!menu) return;
+  versionsMenuOpen = !versionsMenuOpen;
+  menu.classList.toggle('open', versionsMenuOpen);
+
+  if (versionsMenuOpen && !menu.dataset.loaded && currentId) {
+    menu.innerHTML = '<div class="versions-menu-empty">Завантаження...</div>';
+    try {
+      const data = await fetch('/api/resume/versions/' + currentId).then(r => r.json());
+      menu.dataset.loaded = '1';
+      if (!data.versions?.length) {
+        menu.innerHTML = '<div class="versions-menu-empty">Збережених версій ще немає</div>';
+        return;
+      }
+      menu.innerHTML = data.versions.map((v, i) =>
+        `<button class="versions-menu-item" onclick="restoreVersion(${v.id})">
+          ${i === 0 ? '★ ' : ''}${v.saved_at.slice(0,16).replace('T',' ')}
+        </button>`
+      ).join('');
+    } catch {
+      menu.innerHTML = '<div class="versions-menu-empty">Помилка завантаження</div>';
+    }
+  }
+}
+
+async function restoreVersion(versionId) {
+  if (!confirm('Завантажити цю версію? Незбережені зміни буде втрачено.')) return;
+  try {
+    const data = await fetch('/api/resume/version/' + versionId).then(r => r.json());
+    if (data.ok) {
+      editor.setValue(data.latex_code);
+      versionsMenuOpen = false;
+      const menu = document.getElementById('versions-menu');
+      menu?.classList.remove('open');
+      delete menu?.dataset.loaded;
+    }
+  } catch { alert('Помилка завантаження версії'); }
+}
+
+document.addEventListener('click', e => {
+  const wrap = document.getElementById('btn-versions')?.parentElement;
+  if (wrap && !wrap.contains(e.target)) {
+    versionsMenuOpen = false;
+    document.getElementById('versions-menu')?.classList.remove('open');
+  }
+});
+
+// ─── ATS перевірка ────────────────────────────────────────────────
+function runAtsCheck() {
+  const latex   = editor.getValue();
+  const results = document.getElementById('ats-results');
+
+  const checks = [
+    { label: 'Email адреса',              hint: 'Додай email в шапку резюме',                ok: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/.test(latex) },
+    { label: 'Номер телефону',            hint: 'Додай телефон в контактну інформацію',      ok: /\+?[\d][\d\s\-().]{6,}/.test(latex.slice(0, 800)) },
+    { label: 'LinkedIn профіль',          hint: 'Додай посилання linkedin.com/in/...',       ok: /linkedin\.com/i.test(latex) },
+    { label: 'GitHub профіль',            hint: 'Додай посилання github.com/...',            ok: /github\.com/i.test(latex) },
+    { label: 'Немає зображень',           hint: '\\includegraphics погано читається ATS',   ok: !/\\includegraphics/.test(latex) },
+    { label: 'Секція Experience/Досвід',  hint: 'Додай секцію з досвідом роботи',           ok: /\\section\s*\{[^}]*(Experience|Досвід|Work|Experi)/i.test(latex) },
+    { label: 'Секція Education/Освіта',   hint: 'Додай секцію з освітою',                   ok: /\\section\s*\{[^}]*(Education|Освіт|Навчання)/i.test(latex) },
+    { label: 'Секція Skills/Навички',     hint: 'Додай секцію з технічними навичками',      ok: /\\section\s*\{[^}]*(Skill|Навичк|Technical)/i.test(latex) },
+    { label: 'Стандартний documentclass', hint: 'Використовуй article або report',          ok: /\\documentclass[\[{]/.test(latex) },
+    { label: 'UTF-8 кодування',           hint: 'Потрібен \\usepackage[utf8]{inputenc}',    ok: /\\usepackage\[utf8\]\{inputenc\}/.test(latex) },
+    { label: 'Контактна інформація є',    hint: 'ATS шукає ім\'я, email, телефон разом',    ok: latex.length > 500 && /\\begin\{document\}/.test(latex) },
+  ];
+
+  const passed = checks.filter(c => c.ok).length;
+  const total  = checks.length;
+  const pct    = Math.round(passed / total * 100);
+  const color  = pct >= 80 ? '#16a34a' : pct >= 55 ? '#d97706' : '#dc2626';
+
+  let html = `
+    <div class="ats-score-bar"><div class="ats-score-fill" style="width:${pct}%;background:${color}"></div></div>
+    <div class="ats-score-text">ATS Score: <b style="color:${color}">${pct}%</b> &nbsp;(${passed}/${total} перевірок)</div>
+    <div>`;
+
+  for (const c of checks) {
+    const icon = c.ok ? '✅' : '❌';
+    html += `<div class="ats-item">
+      <span class="ats-icon">${icon}</span>
+      <div>
+        <div class="ats-label">${c.label}</div>
+        ${!c.ok ? `<div class="ats-hint">${c.hint}</div>` : ''}
+      </div>
+    </div>`;
+  }
+
+  html += '</div>';
+  results.innerHTML = html;
+}
+
+// ─── Cover letter generation ──────────────────────────────────────
+async function generateCoverLetter() {
+  const vacText  = getVacancyText();
+  const latex    = editor.getValue();
+  const btn      = document.getElementById('btn-generate-cl');
+  const content  = document.getElementById('cl-content');
+
+  if (!vacText.trim()) {
+    switchTab('vacancy');
+    const ta = document.getElementById('vacancy-paste');
+    if (ta) ta.focus();
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Генерую...';
+  content.innerHTML = '<p class="cl-hint">Claude AI думає... зазвичай 10–20 секунд.</p>';
+
+  try {
+    const resp = await fetch('/cover-letter/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ vacancy_text: vacText, resume_latex: latex }),
+    });
+    const data = await resp.json();
+
+    if (!data.ok) {
+      content.innerHTML = `<div class="cl-error">${data.error}</div>`;
+      return;
+    }
+
+    content.innerHTML = `
+      <textarea class="cl-textarea" id="cl-textarea" spellcheck="true">${data.text.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
+      <div class="cl-actions">
+        <button class="cl-copy-btn" onclick="copyCoverLetter()">Копіювати</button>
+        <button class="cl-generate-btn" style="width:auto;padding:.4rem 1rem;margin:0" onclick="generateCoverLetter()">Перегенерувати</button>
+      </div>`;
+  } catch (e) {
+    content.innerHTML = `<div class="cl-error">Помилка з'єднання: ${e.message}</div>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Згенерувати супровідний лист';
+  }
+}
+
+function copyCoverLetter() {
+  const ta = document.getElementById('cl-textarea');
+  if (!ta) return;
+  navigator.clipboard.writeText(ta.value).then(() => {
+    const btn = document.querySelector('.cl-copy-btn');
+    if (btn) { btn.textContent = 'Скопійовано!'; setTimeout(() => { btn.textContent = 'Копіювати'; }, 2000); }
   });
 }
 
