@@ -420,13 +420,41 @@
     .comp-all-ok      { font-size: .75rem; color: #16a34a; margin-top: .2rem; }
 
     /* ─── ATS tab ────────────────────────────────────── */
-    .ats-score-bar { height: 8px; border-radius: 4px; background: var(--border, #e2e8f0); overflow: hidden; margin-bottom: .4rem; }
+    .ats-score-bar  { height: 8px; border-radius: 4px; background: var(--border, #e2e8f0); overflow: hidden; margin-bottom: .4rem; }
     .ats-score-fill { height: 100%; border-radius: 4px; transition: width .4s; }
-    .ats-score-text { font-size: .82rem; color: var(--text-muted, #64748b); margin-bottom: .8rem; }
-    .ats-item { display: flex; align-items: flex-start; gap: .5rem; font-size: .84rem; padding: .28rem 0; }
-    .ats-icon { font-size: .95rem; flex-shrink: 0; width: 1.4rem; }
-    .ats-label { flex: 1; color: var(--text, #1e293b); }
-    .ats-hint { font-size: .78rem; color: var(--text-muted, #94a3b8); margin-top: .1rem; }
+    .ats-score-text { font-size: .82rem; color: var(--text-muted, #64748b); margin-bottom: .75rem; }
+    .ats-group      { margin-bottom: .9rem; }
+    .ats-group-title {
+      font-size: .73rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
+      padding: .3rem .55rem; border-radius: 5px; margin-bottom: .35rem;
+      display: flex; align-items: center; gap: .35rem;
+    }
+    .ats-group-count { margin-left: auto; font-weight: 600; }
+    .ats-critical { background: #fee2e2; color: #991b1b; }
+    .ats-warning  { background: #fef3c7; color: #92400e; }
+    .ats-info     { background: #eff6ff; color: #1e40af; }
+    .ats-item     { display: flex; align-items: flex-start; gap: .45rem; padding: .3rem .2rem; }
+    .ats-icon     { font-size: .88rem; flex-shrink: 0; width: 1.3rem; margin-top: .05rem; }
+    .ats-item-body { flex: 1; min-width: 0; }
+    .ats-label    { font-size: .83rem; color: var(--text, #1e293b); }
+    .ats-item-ok .ats-label { color: var(--text-muted, #64748b); }
+    .ats-hint     { font-size: .76rem; color: var(--text-muted, #94a3b8); margin-top: .15rem; line-height: 1.5; }
+    .ats-template {
+      font-size: .71rem; background: var(--hover, #f8fafc);
+      border: 1px solid var(--border, #e2e8f0); border-radius: 4px;
+      padding: .2rem .4rem; margin-top: .3rem; overflow-x: auto; white-space: nowrap;
+    }
+    .ats-template code { color: #7c3aed; font-family: monospace; }
+    .ats-insert-btn {
+      font-size: .73rem; padding: .15rem .45rem; margin-top: .25rem;
+      border-radius: 4px; border: 1px solid #7c3aed; color: #7c3aed;
+      background: transparent; cursor: pointer; display: inline-block;
+    }
+    .ats-insert-btn:hover { background: #f5f3ff; }
+    [data-theme="dark"] .ats-critical { background: #450a0a; color: #fca5a5; }
+    [data-theme="dark"] .ats-warning  { background: #451a03; color: #fcd34d; }
+    [data-theme="dark"] .ats-info     { background: #1e3a5f; color: #93c5fd; }
+    [data-theme="dark"] .ats-template { background: #1e293b; }
   </style>
 </head>
 <body>
@@ -943,48 +971,220 @@ document.addEventListener('click', e => {
   }
 });
 
-// ─── ATS перевірка ────────────────────────────────────────────────
+// ─── ATS перевірка (22 checks, 3 групи) ──────────────────────────
 function runAtsCheck() {
   const latex   = editor.getValue();
   const results = document.getElementById('ats-results');
+  const head    = latex.slice(0, Math.floor(latex.length * 0.25)); // перші 25% — зазвичай шапка
 
   const checks = [
-    { label: 'Email адреса',              hint: 'Додай email в шапку резюме',                ok: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/.test(latex) },
-    { label: 'Номер телефону',            hint: 'Додай телефон в контактну інформацію',      ok: /\+?[\d][\d\s\-().]{6,}/.test(latex.slice(0, 800)) },
-    { label: 'LinkedIn профіль',          hint: 'Додай посилання linkedin.com/in/...',       ok: /linkedin\.com/i.test(latex) },
-    { label: 'GitHub профіль',            hint: 'Додай посилання github.com/...',            ok: /github\.com/i.test(latex) },
-    { label: 'Немає зображень',           hint: '\\includegraphics погано читається ATS',   ok: !/\\includegraphics/.test(latex) },
-    { label: 'Секція Experience/Досвід',  hint: 'Додай секцію з досвідом роботи',           ok: /\\section\s*\{[^}]*(Experience|Досвід|Work|Experi)/i.test(latex) },
-    { label: 'Секція Education/Освіта',   hint: 'Додай секцію з освітою',                   ok: /\\section\s*\{[^}]*(Education|Освіт|Навчання)/i.test(latex) },
-    { label: 'Секція Skills/Навички',     hint: 'Додай секцію з технічними навичками',      ok: /\\section\s*\{[^}]*(Skill|Навичк|Technical)/i.test(latex) },
-    { label: 'Стандартний documentclass', hint: 'Використовуй article або report',          ok: /\\documentclass[\[{]/.test(latex) },
-    { label: 'UTF-8 кодування',           hint: 'Потрібен \\usepackage[utf8]{inputenc}',    ok: /\\usepackage\[utf8\]\{inputenc\}/.test(latex) },
-    { label: 'Контактна інформація є',    hint: 'ATS шукає ім\'я, email, телефон разом',    ok: latex.length > 500 && /\\begin\{document\}/.test(latex) },
+    // ── КРИТИЧНІ (ATS може відхилити або не розпізнати резюме) ───
+    {
+      severity: 'critical', label: 'Email адреса',
+      ok: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/.test(latex),
+      fix: 'Додай email безпосередньо в тіло документа (не через \\fancyhdr)',
+      template: '\\href{mailto:your@email.com}{your@email.com}',
+    },
+    {
+      severity: 'critical', label: 'Номер телефону',
+      ok: /\+?[\d][\d\s\-().]{6,}/.test(head),
+      fix: 'Додай телефон в шапку у форматі +380-XX-XXX-XXXX',
+      template: '+380-XX-XXX-XXXX',
+    },
+    {
+      severity: 'critical', label: 'Секція Experience / Досвід',
+      ok: /\\section\s*\{[^}]*(Experience|Досвід|Work History|Employment)/i.test(latex),
+      fix: 'Без секції "Experience" ATS не розпізнає досвід роботи і відхилить резюме',
+      template: '\\section{Experience}\n\\resumeSubHeadingListStart\n  \\resumeSubheading\n    {Компанія}{Дата початку -- до тепер}\n    {DevOps Engineer}{Remote}\n    \\resumeItemListStart\n      \\resumeItem{Опис досягнення з цифрами}\n    \\resumeItemListEnd\n\\resumeSubHeadingListEnd',
+    },
+    {
+      severity: 'critical', label: 'Секція Education / Освіта',
+      ok: /\\section\s*\{[^}]*(Education|Освіт|Навчання)/i.test(latex),
+      fix: 'Розділ "Education" обов\'язковий — ATS використовує його для фільтрації за освітою',
+      template: '\\section{Education}\n\\resumeSubHeadingListStart\n  \\resumeSubheading{Університет}{Місто}{Ступінь, Спеціальність}{2016 -- 2020}\n\\resumeSubHeadingListEnd',
+    },
+    {
+      severity: 'critical', label: 'Секція Skills / Навички',
+      ok: /\\section\s*\{[^}]*(Skill|Навичк|Technical Skills|Technologies)/i.test(latex),
+      fix: 'Розділ "Technical Skills" критичний для keyword matching — без нього ATS не знайде твій стек',
+      template: '\\section{Technical Skills}\n\\resumeSubHeadingListStart\n  \\small{\\item{\n    \\textbf{Cloud}{: AWS (EKS, EC2, S3, RDS), GCP} \\\\\n    \\textbf{Containers}{: Kubernetes, Docker, Helm, ArgoCD} \\\\\n    \\textbf{IaC}{: Terraform, Ansible} \\\\\n    \\textbf{CI/CD}{: GitLab CI, GitHub Actions} \\\\\n    \\textbf{Monitoring}{: Prometheus, Grafana, Loki}\n  }}\n\\resumeSubHeadingListEnd',
+    },
+    {
+      severity: 'critical', label: 'Шапка без \\tabular (не парситься Taleo/iCIMS)',
+      ok: !/\\begin\{tabular\}[\s\S]{0,600}@\{\\extracolsep/.test(head),
+      fix: 'Контактна шапка через \\tabular не читається Taleo, iCIMS, Workday. Використовуй \\begin{center} з роздільниками $|$',
+      template: '\\begin{center}\n  \\textbf{\\Huge \\scshape Ім\'я Прізвище} \\\\ \\vspace{1pt}\n  \\small +380-XX-XXX-XXXX $|$\n  \\href{mailto:you@email.com}{you@email.com} $|$\n  \\href{https://linkedin.com/in/you}{linkedin.com/in/you} $|$\n  \\href{https://github.com/you}{github.com/you}\n\\end{center}',
+    },
+    {
+      severity: 'critical', label: 'UTF-8 кодування (inputenc)',
+      ok: /\\usepackage\[utf8\]\{inputenc\}/.test(latex),
+      fix: 'Без inputenc кирилиця перетворюється на кракозябри в ATS парсері',
+      template: '\\usepackage[utf8]{inputenc}\n\\usepackage[T2A]{fontenc}',
+    },
+    {
+      severity: 'critical', label: 'Немає мультиколонок',
+      ok: !/\\begin\{multicols?\}/.test(latex),
+      fix: 'Багатоколончасті макети (\\begin{multicols}) ламають парсинг у 80% ATS. Використовуй лінійну структуру.',
+    },
+
+    // ── ПОПЕРЕДЖЕННЯ (знижують ATS relevancy score) ──────────────
+    {
+      severity: 'warning', label: 'LinkedIn профіль',
+      ok: /linkedin\.com/i.test(latex),
+      fix: '90% рекрутерів перевіряють LinkedIn. Додай посилання в шапку поруч з email.',
+      template: '\\href{https://linkedin.com/in/yourprofile}{linkedin.com/in/yourprofile}',
+    },
+    {
+      severity: 'warning', label: 'GitHub профіль',
+      ok: /github\.com/i.test(latex),
+      fix: 'Для DevOps позицій GitHub — фактично обов\'язковий. ATS і рекрутери перевіряють портфоліо.',
+      template: '\\href{https://github.com/yourusername}{github.com/yourusername}',
+    },
+    {
+      severity: 'warning', label: 'Summary / Про себе',
+      ok: /\\section\s*\{[^}]*(Summary|Profile|About|Про себе|Objective|Overview)/i.test(latex),
+      fix: 'Summary в 2-3 речення — перше що сканує ATS для relevancy. Без нього знижується загальний score.',
+      template: '\\section{Summary}\n\\small{\n  DevOps / SRE Engineer з X роками досвіду. Спеціалізація: Kubernetes, AWS, Terraform, CI/CD.\n  Досвід побудови та підтримки хмарної інфраструктури для high-load проектів. Готовий до remote-роботи.\n}',
+    },
+    {
+      severity: 'warning', label: 'Кількісні досягнення (%, цифри)',
+      ok: /\d+\s*%|\d+\s*(?:мікросервіс|сервіс|репозитор|команд|deploy|млн|тис|TB|GB)|\d+x\b|reduced|improved|increased/i.test(latex),
+      fix: 'ATS та рекрутери надають перевагу вимірюваним результатам. Приклад: "Скоротив час деплою на 40%" замість "покращив CI/CD процес".',
+    },
+    {
+      severity: 'warning', label: 'Дієслова дії (Implemented, Deployed...)',
+      ok: /\b(Implement|Deploy|Automat|Configur|Build|Creat|Develop|Manag|Lead|Optimiz|Design|Architect|Migrat|Integrat|Monitor|Налашт|Впровад|Автомат|Розробив|Мігрував|Побудував|Оптимізу|Забезпечив)/i.test(latex),
+      fix: 'Починай кожен bullet point з дієслова дії: Implemented, Deployed, Automated, Configured, Migrated. ATS ранжує резюме з активними дієсловами вище.',
+    },
+    {
+      severity: 'warning', label: 'Немає зображень (\\includegraphics)',
+      ok: !/\\includegraphics/.test(latex),
+      fix: 'Картинки та логотипи не читаються жодним ATS парсером. Видали \\includegraphics.',
+    },
+    {
+      severity: 'warning', label: 'Дати у стандартному форматі',
+      ok: /\b(20\d{2}|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|Січ|Лют|Бер|Кві|Тра|Чер|Лип|Сер|Вер|Жов|Лис|Гру)\b/.test(latex),
+      fix: 'Використовуй формати що ATS розпізнає: "Jan 2022 -- Present" або "2020 -- 2022". Уникай "06/22" або "VI.2022".',
+    },
+    {
+      severity: 'warning', label: 'Важлива інформація не у header/footer',
+      ok: !/\\fancyhead\s*\[[^\]]+\]\s*\{[^}]{10,}/.test(latex) && !/\\fancyfoot\s*\[[^\]]+\]\s*\{[^}]{10,}/.test(latex),
+      fix: 'Текст у \\fancyhead та \\fancyfoot ігнорується більшістю ATS. Вся контактна інформація має бути в тілі \\begin{document}.',
+    },
+    {
+      severity: 'warning', label: 'Немає "References available upon request"',
+      ok: !/references available/i.test(latex),
+      fix: 'Ця фраза марно займає місце — ATS та рекрутери її ігнорують. Просто видали цей рядок.',
+    },
+
+    // ── ПОРАДИ (best practices для вищого score) ─────────────────
+    {
+      severity: 'info', label: 'Ім\'я виділено великим шрифтом',
+      ok: /\\(?:Huge|LARGE|Large)\s*(?:\\scshape\s*)?[A-ZА-ЯІЇЄ]/.test(latex),
+      fix: 'Ім\'я має бути найбільшим елементом — ATS визначає його як ідентифікатор кандидата.',
+      template: '\\textbf{\\Huge \\scshape Ім\'я Прізвище}',
+    },
+    {
+      severity: 'info', label: 'Вказано місто або Remote',
+      ok: /Київ|Kyiv|Lviv|Львів|Харків|Kharkiv|Ukraine|Україна|Remote|remote|Дніпро|Одеса|Запоріж/i.test(latex),
+      fix: 'Вкажи місто або "Remote" — частина ATS систем фільтрує кандидатів за локацією.',
+      template: 'Kyiv, Ukraine $|$ Remote',
+    },
+    {
+      severity: 'info', label: 'Секція Certifications',
+      ok: /\\section\s*\{[^}]*(Certif|Сертиф)/i.test(latex),
+      fix: 'CKA, AWS SAA, CKAD — вагомий сигнал для ATS у DevOps вакансіях. Окрема секція підвищує keyword score.',
+      template: '\\section{Certifications}\n\\resumeSubHeadingListStart\n  \\resumeProjectHeading{\\textbf{AWS Certified Solutions Architect} -- Associate}{2024}\n  \\resumeProjectHeading{\\textbf{Certified Kubernetes Administrator (CKA)}}{2023}\n\\resumeSubHeadingListEnd',
+    },
+    {
+      severity: 'info', label: 'Секція Projects',
+      ok: /\\section\s*\{[^}]*(Project|Проєкт|Проект)/i.test(latex),
+      fix: 'Open-source або pet проєкти показують практичний досвід. ATS враховує їх при keyword matching.',
+      template: '\\section{Projects}\n\\resumeSubHeadingListStart\n  \\resumeProjectHeading{\\textbf{Назва проєкту} $|$ \\emph{Kubernetes, Terraform, ArgoCD}}{2024}\n    \\resumeItemListStart\n      \\resumeItem{Опис що зробив та результат}\n    \\resumeItemListEnd\n\\resumeSubHeadingListEnd',
+    },
+    {
+      severity: 'info', label: 'Навички списком (не суцільним текстом)',
+      ok: /\\textbf\{[^}]+\}\{:/.test(latex) || /\\textbf\{[^}]+\}:/.test(latex),
+      fix: 'У секції Skills використовуй "\\textbf{Cloud}{: AWS, GCP}" замість суцільного абзацу — ATS краще парсить структуровані категорії.',
+    },
+    {
+      severity: 'info', label: 'Обсяг: 5–40 bullet points (~1–2 сторінки)',
+      ok: (() => {
+        const n = (latex.match(/\\resumeItem|\\item\s+\S/g) || []).length;
+        return n >= 5 && n <= 45;
+      })(),
+      fix: 'Менше 5 пунктів — резюме виглядає порожнім. Більше 45 — швидше за все більше 2 сторінок. ATS знижує score за нестандартний обсяг.',
+    },
   ];
 
-  const passed = checks.filter(c => c.ok).length;
-  const total  = checks.length;
-  const pct    = Math.round(passed / total * 100);
-  const color  = pct >= 80 ? '#16a34a' : pct >= 55 ? '#d97706' : '#dc2626';
+  // ── Score (вага: critical=3, warning=2, info=1) ───────────────
+  const weights    = { critical: 3, warning: 2, info: 1 };
+  const maxScore   = checks.reduce((s, c) => s + weights[c.severity], 0);
+  const gotScore   = checks.filter(c => c.ok).reduce((s, c) => s + weights[c.severity], 0);
+  const pct        = Math.round(gotScore / maxScore * 100);
+  const color      = pct >= 80 ? '#16a34a' : pct >= 55 ? '#d97706' : '#dc2626';
+  const passed     = checks.filter(c => c.ok).length;
 
-  let html = `
+  // ── Render helpers ────────────────────────────────────────────
+  const esc = s => s.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+  const renderGroup = (title, sev, icon) => {
+    const items  = checks.filter(c => c.severity === sev);
+    const failed = items.filter(c => !c.ok);
+    const ok     = items.filter(c => c.ok);
+    if (items.length === 0) return '';
+    let h = `<div class="ats-group">
+      <div class="ats-group-title ats-${sev}">
+        ${icon} ${title}
+        <span class="ats-group-count">${ok.length}/${items.length}</span>
+      </div>`;
+    for (const c of [...failed, ...ok]) {
+      const tplJson = c.template ? JSON.stringify(c.template) : null;
+      h += `<div class="ats-item${c.ok ? ' ats-item-ok' : ''}">
+        <span class="ats-icon">${c.ok ? '✅' : (sev === 'critical' ? '🔴' : sev === 'warning' ? '🟡' : '💡')}</span>
+        <div class="ats-item-body">
+          <div class="ats-label">${c.label}</div>
+          ${!c.ok ? `<div class="ats-hint">${c.fix}</div>` : ''}
+          ${!c.ok && tplJson ? `
+            <div class="ats-template"><code>${esc(c.template).replace(/\n/g, ' ↵ ')}</code></div>
+            <button class="ats-insert-btn" onclick="insertAtsTemplate(${esc(tplJson)})">↳ Вставити в редактор</button>
+          ` : ''}
+        </div>
+      </div>`;
+    }
+    return h + '</div>';
+  };
+
+  results.innerHTML = `
     <div class="ats-score-bar"><div class="ats-score-fill" style="width:${pct}%;background:${color}"></div></div>
-    <div class="ats-score-text">ATS Score: <b style="color:${color}">${pct}%</b> &nbsp;(${passed}/${total} перевірок)</div>
-    <div>`;
+    <div class="ats-score-text">
+      ATS Score: <b style="color:${color}">${pct}%</b>
+      <span style="color:var(--text-muted)">&nbsp;(${passed}/${checks.length} пройдено)</span>
+    </div>
+    ${renderGroup('Критичні — ATS може відхилити', 'critical', '🔴')}
+    ${renderGroup('Попередження — знижують score', 'warning',  '🟡')}
+    ${renderGroup('Поради — best practices',        'info',     '💡')}
+    <button class="kw-copy-missing" style="margin-top:.6rem" onclick="copyAtsReport()">
+      Скопіювати звіт
+    </button>`;
 
-  for (const c of checks) {
-    const icon = c.ok ? '✅' : '❌';
-    html += `<div class="ats-item">
-      <span class="ats-icon">${icon}</span>
-      <div>
-        <div class="ats-label">${c.label}</div>
-        ${!c.ok ? `<div class="ats-hint">${c.hint}</div>` : ''}
-      </div>
-    </div>`;
-  }
+  // Зберігаємо checks для звіту
+  window._lastAtsChecks = checks;
+}
 
-  html += '</div>';
-  results.innerHTML = html;
+function insertAtsTemplate(code) {
+  editor.focus();
+  editor.replaceSelection(code);
+}
+
+function copyAtsReport() {
+  const checks = window._lastAtsChecks || [];
+  const lines  = checks.filter(c => !c.ok).map(c => `❌ [${c.severity.toUpperCase()}] ${c.label}\n   → ${c.fix}`);
+  const text   = `ATS Звіт резюме\n${'─'.repeat(40)}\nПроблеми (${lines.length}):\n\n${lines.join('\n\n')}`;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.querySelector('[onclick="copyAtsReport()"]');
+    if (btn) { btn.textContent = 'Скопійовано!'; setTimeout(() => { btn.textContent = 'Скопіювати звіт'; }, 2000); }
+  });
 }
 
 // ─── Cover letter generation ──────────────────────────────────────
