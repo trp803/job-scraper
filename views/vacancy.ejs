@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= vacancy.title %> — DevOps Jobs</title>
+  <link rel="stylesheet" href="/style.css">
+  <script>if(localStorage.getItem('theme')==='dark')document.documentElement.setAttribute('data-theme','dark')</script>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo">
+      <span class="logo-icon">⚙</span>
+      <span>DevOps Jobs</span>
+    </div>
+    <nav class="tab-nav">
+      <a href="/" class="tab-link">Вакансії</a>
+      <a href="/analytics" class="tab-link">Аналітика</a>
+      <a href="/tracker" class="tab-link">Відгуки</a>
+      <a href="/logs" class="tab-link">Логи</a>
+    </nav>
+    <button class="btn-dark" id="btn-dark" onclick="toggleDark()" title="Темна тема">🌙</button>
+  </div>
+</header>
+
+<main class="vd-wrap">
+
+  <!-- Навігація -->
+  <div class="vd-nav">
+    <a href="/" class="vd-back">← До списку</a>
+    <a href="<%= vacancy.url %>" target="_blank" rel="noopener" class="btn-open-site">
+      Відкрити на <%= vacancy.source %> ↗
+    </a>
+  </div>
+
+  <!-- Картка вакансії -->
+  <article class="vd-card">
+
+    <!-- Мета: джерело, рівень, remote, NEW -->
+    <div class="job-meta">
+      <span class="source-tag source-<%= vacancy.source.replace(/\./g,'-') %>"><%= vacancy.source %></span>
+
+      <% if (vacancy.level) { %>
+        <span class="level-tag level-<%= vacancy.level.key %>"><%= vacancy.level.label %></span>
+      <% } %>
+
+      <% if (vacancy.workFormat) { %>
+        <span class="format-tag format-<%= vacancy.workFormat.key %>"><%= vacancy.workFormat.label %></span>
+      <% } %>
+
+      <% if (vacancy.is_new) { %><span class="tag-new">NEW</span><% } %>
+    </div>
+
+    <!-- Заголовок -->
+    <h1 class="vd-title"><%= vacancy.title %></h1>
+
+    <!-- Компанія, ЗП, Локація, досвід -->
+    <div class="job-info vd-info">
+      <% if (vacancy.company) { %>
+        <span class="company vd-company"><%= vacancy.company %></span>
+      <% } %>
+      <% if (vacancy.salary) { %>
+        <span class="salary"><%= vacancy.salary %></span>
+      <% } %>
+      <% if (vacancy.expYears) { %>
+        <span class="exp-tag"><%= vacancy.expYears %>+ р. досвіду</span>
+      <% } %>
+      <% if (vacancy.location) { %>
+        <span class="location">📍 <%= vacancy.location %></span>
+      <% } %>
+    </div>
+
+    <!-- Tech теги -->
+    <% if (vacancy.techTags && vacancy.techTags.length > 0) { %>
+    <div class="tech-tags vd-tech">
+      <% vacancy.techTags.forEach(t => { %><span class="tech-pill"><%= t %></span><% }) %>
+    </div>
+    <% } %>
+
+    <!-- Опис -->
+    <% if (vacancy.description) { %>
+    <div class="vd-desc">
+      <h3 class="vd-desc-title">Опис</h3>
+      <p><%= vacancy.description %></p>
+    </div>
+    <% } else { %>
+    <div class="vd-desc vd-desc-empty">
+      <p>Детальний опис доступний на сайті роботодавця.</p>
+    </div>
+    <% } %>
+
+    <!-- Дати -->
+    <div class="vd-dates">
+      <% if (vacancy.published_at) { %>
+        <span>Опубліковано: <b><%= vacancy.published_at %></b></span>
+      <% } %>
+      <span>Знайдено: <b><%= vacancy.created_at?.slice(0, 10) %></b></span>
+    </div>
+
+  </article>
+
+  <!-- Дії -->
+  <div class="vd-actions">
+    <button class="btn-apply" id="apply-btn" onclick="applyJob(<%= vacancy.id %>)">
+      <% if (application) { %>
+        ✓ <%= statusLabel('<%= application.status %>') %>
+      <% } else { %>
+        ✉ Відгукнутись
+      <% } %>
+    </button>
+    <a href="<%= vacancy.url %>" target="_blank" rel="noopener" class="btn-open-site">
+      Відкрити вакансію ↗
+    </a>
+  </div>
+
+</main>
+
+<script>
+function applyJob(id) {
+  const btn = document.getElementById('apply-btn');
+  btn.disabled = true;
+  fetch('/tracker/apply', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ vacancy_id: id, status: 'applied' }),
+  })
+    .then(r => r.json())
+    .then(d => {
+      if (d.ok) {
+        btn.textContent = '✓ Відгукнулись';
+        btn.classList.add('btn-applied');
+      } else {
+        btn.disabled = false;
+      }
+    })
+    .catch(() => { btn.disabled = false; });
+}
+
+function statusLabel(s) {
+  const map = { applied: 'Відгукнулись', screening: 'Скринінг', interview: "Інтерв'ю", offer: 'Оффер', rejected: 'Відмовили', withdrawn: 'Відкликали' };
+  return map[s] || s;
+}
+
+// Ініціалізуємо статус кнопки якщо є відгук
+<% if (application) { %>
+(function() {
+  const btn = document.getElementById('apply-btn');
+  btn.textContent = '✓ ' + statusLabel('<%= application.status %>');
+  btn.classList.add('btn-applied');
+})();
+<% } %>
+
+function toggleDark() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const next = isDark ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('theme', next);
+  document.getElementById('btn-dark').textContent = next === 'dark' ? '☀' : '🌙';
+}
+(function initTheme() {
+  const saved = localStorage.getItem('theme') || 'light';
+  if (saved === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    const btn = document.getElementById('btn-dark');
+    if (btn) btn.textContent = '☀';
+  }
+})();
+</script>
+
+</body>
+</html>

@@ -67,7 +67,7 @@ const insertVacancy = db.prepare(`
 `);
 
 // Получить все вакансии без пагинации (для серверной фильтрации по enrich-полям)
-function getAllVacancies({ source, onlyNew, search } = {}) {
+function getAllVacancies({ source, onlyNew, search, hasSalary } = {}) {
   let where = [];
   let params = {};
 
@@ -81,6 +81,9 @@ function getAllVacancies({ source, onlyNew, search } = {}) {
   if (search) {
     where.push('(title LIKE @search OR company LIKE @search)');
     params.search = `%${search}%`;
+  }
+  if (hasSalary) {
+    where.push("salary IS NOT NULL AND salary != ''");
   }
 
   const condition = where.length ? `WHERE ${where.join(' AND ')}` : '';
@@ -92,7 +95,7 @@ function getAllVacancies({ source, onlyNew, search } = {}) {
 }
 
 // Получить все вакансии с фильтрами
-function getVacancies({ source, onlyNew, search, limit = 100, offset = 0 } = {}) {
+function getVacancies({ source, onlyNew, search, hasSalary, limit = 100, offset = 0 } = {}) {
   let where = [];
   let params = {};
 
@@ -106,6 +109,9 @@ function getVacancies({ source, onlyNew, search, limit = 100, offset = 0 } = {})
   if (search) {
     where.push('(title LIKE @search OR company LIKE @search)');
     params.search = `%${search}%`;
+  }
+  if (hasSalary) {
+    where.push("salary IS NOT NULL AND salary != ''");
   }
 
   const condition = where.length ? `WHERE ${where.join(' AND ')}` : '';
@@ -119,7 +125,7 @@ function getVacancies({ source, onlyNew, search, limit = 100, offset = 0 } = {})
 }
 
 // Количество вакансий (для пагинации)
-function countVacancies({ source, onlyNew, search } = {}) {
+function countVacancies({ source, onlyNew, search, hasSalary } = {}) {
   let where = [];
   let params = {};
 
@@ -133,6 +139,9 @@ function countVacancies({ source, onlyNew, search } = {}) {
   if (search) {
     where.push('(title LIKE @search OR company LIKE @search)');
     params.search = `%${search}%`;
+  }
+  if (hasSalary) {
+    where.push("salary IS NOT NULL AND salary != ''");
   }
 
   const condition = where.length ? `WHERE ${where.join(' AND ')}` : '';
@@ -241,11 +250,16 @@ function getApplicationStats() {
   `).all();
 }
 
+function getVacancyById(id) {
+  return db.prepare('SELECT * FROM vacancies WHERE id = ?').get(id);
+}
+
 module.exports = {
   insertVacancy,
   getVacancies,
   getAllVacancies,
   countVacancies,
+  getVacancyById,
   markViewed,
   resetNewFlags,
   getStats,

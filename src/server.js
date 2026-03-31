@@ -64,6 +64,7 @@ app.get('/', (req, res) => {
     level   = '',
     remote  = '',
     tech    = '',
+    salary  = '',
     page    = '1',
   } = req.query;
 
@@ -72,9 +73,10 @@ app.get('/', (req, res) => {
   const offset      = (currentPage - 1) * pageSize;
 
   const dbFilter = {
-    source:  source || 'all',
-    search:  search.trim() || null,
-    onlyNew: onlyNew === '1',
+    source:    source || 'all',
+    search:    search.trim() || null,
+    onlyNew:   onlyNew === '1',
+    hasSalary: salary === '1',
   };
 
   const stats = db.getStats();
@@ -102,7 +104,7 @@ app.get('/', (req, res) => {
   res.render('index', {
     vacancies,
     stats,
-    filter: { source, search, onlyNew: onlyNew === '1', level, remote, tech },
+    filter: { source, search, onlyNew: onlyNew === '1', level, remote, tech, hasSalary: salary === '1' },
     pagination: { current: currentPage, total: totalPages, count: total },
   });
 });
@@ -191,13 +193,27 @@ app.post('/scrape', async (req, res) => {
   }
 });
 
+// ─── Сторінка деталей вакансії ────────────────────────────────────
+
+app.get('/vacancy/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  if (!id) return res.status(404).send('Not found');
+  const vacancy = db.getVacancyById(id);
+  if (!vacancy) return res.status(404).send('Вакансія не знайдена');
+  db.markViewed.run(id);
+  const enriched = enrichVacancy(vacancy);
+  const application = db.getApplicationByVacancy(id);
+  res.render('vacancy', { vacancy: enriched, application: application || null });
+});
+
 // ─── Експорт ──────────────────────────────────────────────────────
 
 app.get('/export/csv', (req, res) => {
   const rows = db.getAllVacancies({
-    source:  req.query.source,
-    search:  req.query.search,
-    onlyNew: req.query.new === '1',
+    source:    req.query.source,
+    search:    req.query.search,
+    onlyNew:   req.query.new === '1',
+    hasSalary: req.query.salary === '1',
   });
 
   const cols = ['id', 'source', 'title', 'company', 'location', 'salary', 'url', 'published_at', 'created_at'];
@@ -214,12 +230,60 @@ app.get('/export/csv', (req, res) => {
 
 app.get('/export/json', (req, res) => {
   const rows = db.getAllVacancies({
-    source:  req.query.source,
-    search:  req.query.search,
-    onlyNew: req.query.new === '1',
+    source:    req.query.source,
+    search:    req.query.search,
+    onlyNew:   req.query.new === '1',
+    hasSalary: req.query.salary === '1',
   });
   res.setHeader('Content-Disposition', 'attachment; filename="devops-jobs.json"');
   res.json({ exported_at: new Date().toISOString(), count: rows.length, data: rows });
+});
+
+app.get('/export/xlsx', async (req, res) => {
+  const ExcelJS = require('exceljs');
+  const rows = db.getAllVacancies({
+    source:    req.query.source,
+    search:    req.query.search,
+    onlyNew:   req.query.new === '1',
+    hasSalary: req.query.salary === '1',
+  });
+
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = 'DevOps Jobs Scraper';
+
+  const sheet = workbook.addWorksheet('DevOps Jobs');
+  sheet.columns = [
+    { header: 'ID',           key: 'id',           width: 7  },
+    { header: 'Джерело',      key: 'source',        width: 12 },
+    { header: 'Посада',       key: 'title',         width: 45 },
+    { header: 'Компанія',     key: 'company',       width: 25 },
+    { header: 'Зарплата',     key: 'salary',        width: 18 },
+    { header: 'Локація',      key: 'location',      width: 15 },
+    { header: 'URL',          key: 'url',           width: 55 },
+    { header: 'Опубліковано', key: 'published_at',  width: 14 },
+    { header: 'Знайдено',     key: 'created_at',    width: 14 },
+  ];
+
+  // Стиль заголовку
+  const headerRow = sheet.getRow(1);
+  headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+  headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2563EB' } };
+  headerRow.alignment = { vertical: 'middle' };
+  headerRow.height = 20;
+
+  rows.forEach(r => sheet.addRow(r));
+
+  // Зебра: непарні рядки злегка підсвічені
+  sheet.eachRow((row, rowNumber) => {
+    if (rowNumber > 1 && rowNumber % 2 === 0) {
+      row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF0F4FF' } };
+    }
+  });
+
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', 'attachment; filename="devops-jobs.xlsx"');
+  await workbook.xlsx.write(res);
+  res.end();
 });
 
 // ─── API ──────────────────────────────────────────────────────────

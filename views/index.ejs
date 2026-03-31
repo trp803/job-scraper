@@ -35,7 +35,8 @@
       <span>Сьогодні: <b><%= stats.today %></b></span>
     </div>
     <div class="scraper-status" id="scraper-status"></div>
-    <a class="btn-export" href="/export/csv?source=<%= filter.source %>&search=<%= filter.search||'' %>&new=<%= filter.onlyNew?'1':'' %>" title="Завантажити CSV">⬇ CSV</a>
+    <a class="btn-export" href="/export/xlsx?source=<%= filter.source %>&search=<%= filter.search||'' %>&new=<%= filter.onlyNew?'1':'' %>&salary=<%= filter.hasSalary?'1':'' %>" title="Завантажити Excel">⬇ XLSX</a>
+    <a class="btn-export" href="/export/csv?source=<%= filter.source %>&search=<%= filter.search||'' %>&new=<%= filter.onlyNew?'1':'' %>&salary=<%= filter.hasSalary?'1':'' %>" title="Завантажити CSV">⬇ CSV</a>
     <button class="btn-dark" id="btn-dark" onclick="toggleDark()" title="Темна тема">🌙</button>
     <button class="btn-scrape" id="btn-scrape" onclick="runScraper()">↻ Оновити</button>
   </div>
@@ -82,6 +83,13 @@
       <input type="checkbox" name="new" value="1"
         <%= filter.onlyNew ? 'checked' : '' %> onchange="this.form.submit()">
       <span>Тільки нові</span>
+    </label>
+
+    <!-- Тільки з зарплатою -->
+    <label class="toggle">
+      <input type="checkbox" name="salary" value="1"
+        <%= filter.hasSalary ? 'checked' : '' %> onchange="this.form.submit()">
+      <span>З зарплатою</span>
     </label>
 
     <span class="results-count"><%= pagination.count %> вакансій</span>
@@ -135,8 +143,8 @@
 
     <!-- Рядок 2: Заголовок -->
     <h2 class="job-title">
-      <a href="<%= v.url %>" target="_blank" rel="noopener"
-         onclick="markViewed(<%= v.id %>)"><%= v.title %></a>
+      <a href="/vacancy/<%= v.id %>" onclick="markViewed(<%= v.id %>)"><%= v.title %></a>
+      <a href="<%= v.url %>" target="_blank" rel="noopener" class="ext-link" title="Відкрити на сайті">↗</a>
     </h2>
 
     <!-- Рядок 3: Компанія + ЗП + Локація -->
@@ -181,12 +189,13 @@
 <!-- Пагінація -->
 <% if (pagination.total > 1) { %>
 <nav class="pagination">
+  <% const pq = `source=${filter.source}&search=${filter.search||''}&new=${filter.onlyNew?'1':''}&level=${filter.level||''}&remote=${filter.remote||''}&salary=${filter.hasSalary?'1':''}` %>
   <% if (pagination.current > 1) { %>
-    <a href="?page=<%= pagination.current-1 %>&source=<%= filter.source %>&search=<%= filter.search||'' %>&new=<%= filter.onlyNew?'1':'' %>&level=<%= filter.level||'' %>&remote=<%= filter.remote||'' %>">← Назад</a>
+    <a href="?page=<%= pagination.current-1 %>&<%= pq %>">← Назад</a>
   <% } %>
   <span>Стор. <%= pagination.current %> / <%= pagination.total %></span>
   <% if (pagination.current < pagination.total) { %>
-    <a href="?page=<%= pagination.current+1 %>&source=<%= filter.source %>&search=<%= filter.search||'' %>&new=<%= filter.onlyNew?'1':'' %>&level=<%= filter.level||'' %>&remote=<%= filter.remote||'' %>">Вперед →</a>
+    <a href="?page=<%= pagination.current+1 %>&<%= pq %>">Вперед →</a>
   <% } %>
 </nav>
 <% } %>
