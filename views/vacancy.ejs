@@ -102,10 +102,17 @@
   </article>
 
   <!-- Дії -->
+  <%
+    const STATUS_LABELS = {
+      applied: 'Відгукнулись', screening: 'Скринінг',
+      interview: "Інтерв'ю", offer: 'Оффер',
+      rejected: 'Відмовили', withdrawn: 'Відкликали',
+    };
+  %>
   <div class="vd-actions">
     <button class="btn-apply" id="apply-btn" onclick="applyJob(<%= vacancy.id %>)">
       <% if (application) { %>
-        ✓ <%= statusLabel('<%= application.status %>') %>
+        ✓ <%= STATUS_LABELS[application.status] || application.status %>
       <% } else { %>
         ✉ Відгукнутись
       <% } %>

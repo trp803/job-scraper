@@ -143,8 +143,9 @@
 
     <!-- Рядок 2: Заголовок -->
     <h2 class="job-title">
-      <a href="/vacancy/<%= v.id %>" onclick="markViewed(<%= v.id %>)"><%= v.title %></a>
-      <a href="<%= v.url %>" target="_blank" rel="noopener" class="ext-link" title="Відкрити на сайті">↗</a>
+      <a href="<%= v.url %>" target="_blank" rel="noopener"
+         onclick="markViewed(<%= v.id %>)"><%= v.title %></a>
+      <a href="/vacancy/<%= v.id %>" class="ext-link" title="Деталі вакансії">⊙</a>
     </h2>
 
     <!-- Рядок 3: Компанія + ЗП + Локація -->
