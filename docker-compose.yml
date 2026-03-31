@@ -17,13 +17,17 @@ services:
       - PORT=3333
       - SCRAPE_SCHEDULE=0 */3 * * *
       - NODE_ENV=production
+      # Авторизація (обов'язково змінити!)
+      - AUTH_USER=${AUTH_USER:-admin}
+      - AUTH_PASS=${AUTH_PASS:-changeme}
+      - SESSION_SECRET=${SESSION_SECRET:-change-this-secret-key}
       # Telegram бот (опціонально — залиш порожнім щоб вимкнути)
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
       - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID:-}
       - APP_URL=${APP_URL:-http://localhost}
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3333/"]
+      test: ["CMD", "wget", "-qO-", "http://localhost:3333/health"]
       interval: 30s
       timeout: 10s
       retries: 3

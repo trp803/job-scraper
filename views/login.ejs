@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Вхід — DevOps Jobs</title>
+  <link rel="stylesheet" href="/style.css">
+  <script>if(localStorage.getItem('theme')==='dark')document.documentElement.setAttribute('data-theme','dark')</script>
+  <style>
+    .login-wrap {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg);
+    }
+    .login-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 2.5rem 2rem;
+      width: 100%;
+      max-width: 360px;
+      box-shadow: 0 4px 16px rgba(0,0,0,.08);
+    }
+    .login-logo {
+      text-align: center;
+      font-size: 1.4rem;
+      font-weight: 700;
+      margin-bottom: 2rem;
+      color: var(--text);
+    }
+    .login-logo span { color: var(--accent); }
+    .login-field {
+      margin-bottom: 1rem;
+    }
+    .login-field label {
+      display: block;
+      font-size: .85rem;
+      color: var(--text-muted);
+      margin-bottom: .35rem;
+    }
+    .login-field input {
+      width: 100%;
+      padding: .55rem .75rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--bg);
+      color: var(--text);
+      font-size: .95rem;
+      outline: none;
+      transition: border-color .15s;
+    }
+    .login-field input:focus {
+      border-color: var(--accent);
+    }
+    .login-btn {
+      width: 100%;
+      padding: .6rem;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: .5rem;
+      transition: opacity .15s;
+    }
+    .login-btn:hover { opacity: .88; }
+    .login-error {
+      background: #fef2f2;
+      color: #dc2626;
+      border: 1px solid #fecaca;
+      border-radius: var(--radius);
+      padding: .55rem .75rem;
+      font-size: .88rem;
+      margin-bottom: 1rem;
+    }
+    [data-theme="dark"] .login-error {
+      background: #2d1515;
+      border-color: #7f1d1d;
+      color: #f87171;
+    }
+  </style>
+</head>
+<body>
+<div class="login-wrap">
+  <div class="login-card">
+    <div class="login-logo">⚙ DevOps <span>Jobs</span></div>
+
+    <% if (error) { %>
+      <div class="login-error"><%= error %></div>
+    <% } %>
+
+    <form method="POST" action="/login">
+      <div class="login-field">
+        <label for="username">Логін</label>
+        <input type="text" id="username" name="username"
+               autocomplete="username" autofocus required>
+      </div>
+      <div class="login-field">
+        <label for="password">Пароль</label>
+        <input type="password" id="password" name="password"
+               autocomplete="current-password" required>
+      </div>
+      <button type="submit" class="login-btn">Увійти</button>
+    </form>
+  </div>
+</div>
+</body>
+</html>

@@ -128,6 +128,20 @@ header {
 }
 .btn-dark:hover { background: var(--bg); }
 
+.btn-logout {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: .35rem .7rem;
+  font-size: .82rem;
+  cursor: pointer;
+  color: var(--text-muted);
+  white-space: nowrap;
+  transition: background .15s, color .15s;
+}
+.btn-logout:hover { background: #fef2f2; color: #dc2626; border-color: #fecaca; }
+[data-theme="dark"] .btn-logout:hover { background: #2d1515; color: #f87171; border-color: #7f1d1d; }
+
 /* ─── Фільтри ────────────────────────────────────────── */
 .filters {
   max-width: 960px;

@@ -39,6 +39,9 @@
     <a class="btn-export" href="/export/csv?source=<%= filter.source %>&search=<%= filter.search||'' %>&new=<%= filter.onlyNew?'1':'' %>&salary=<%= filter.hasSalary?'1':'' %>" title="Завантажити CSV">⬇ CSV</a>
     <button class="btn-dark" id="btn-dark" onclick="toggleDark()" title="Темна тема">🌙</button>
     <button class="btn-scrape" id="btn-scrape" onclick="runScraper()">↻ Оновити</button>
+    <form method="POST" action="/logout" style="margin:0">
+      <button type="submit" class="btn-logout" title="Вийти">↪ Вийти</button>
+    </form>
   </div>
 </header>
 

@@ -2,10 +2,16 @@
 
 const express  = require('express');
 const path     = require('path');
+const session  = require('express-session');
 const { EventEmitter } = require('events');
 const db       = require('./db');
 const { enrichAll, enrichVacancy } = require('./enricher');
 const { notifyNewJobs } = require('./telegram');
+
+// ─── Конфіг авторизації ───────────────────────────────────────────
+const AUTH_USER      = process.env.AUTH_USER      || 'admin';
+const AUTH_PASS      = process.env.AUTH_PASS      || 'changeme';
+const SESSION_SECRET = process.env.SESSION_SECRET || 'change-this-secret-key';
 
 const app  = express();
 const PORT = process.env.PORT || 3333;
@@ -53,6 +59,49 @@ app.set('views', path.join(__dirname, '..', 'views'));
 app.use(express.static(path.join(__dirname, '..', 'public')));
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
+
+app.use(session({
+  secret:            SESSION_SECRET,
+  resave:            false,
+  saveUninitialized: false,
+  cookie: {
+    httpOnly: true,
+    maxAge:   7 * 24 * 60 * 60 * 1000, // 7 днів
+  },
+}));
+
+// ─── Auth middleware ──────────────────────────────────────────────
+// Публічні роути: /login, /health, /metrics (для Prometheus)
+const PUBLIC_PATHS = ['/login', '/health', '/metrics'];
+
+function requireAuth(req, res, next) {
+  if (PUBLIC_PATHS.includes(req.path)) return next();
+  if (req.session?.authenticated) return next();
+  res.redirect('/login');
+}
+
+app.use(requireAuth);
+
+// ─── Auth роути ───────────────────────────────────────────────────
+
+app.get('/login', (req, res) => {
+  if (req.session?.authenticated) return res.redirect('/');
+  res.render('login', { error: null });
+});
+
+app.post('/login', (req, res) => {
+  const { username, password } = req.body;
+  if (username === AUTH_USER && password === AUTH_PASS) {
+    req.session.authenticated = true;
+    res.redirect('/');
+  } else {
+    res.render('login', { error: 'Невірний логін або пароль' });
+  }
+});
+
+app.post('/logout', (req, res) => {
+  req.session.destroy(() => res.redirect('/login'));
+});
 
 // ─── Головна сторінка — список вакансій ──────────────────────────
 
@@ -381,6 +430,10 @@ app.get('/api/tracker/check/:vacancyId', (req, res) => {
   const app = db.getApplicationByVacancy(parseInt(req.params.vacancyId));
   res.json({ ok: true, application: app || null });
 });
+
+// ─── Health check ─────────────────────────────────────────────────
+
+app.get('/health', (req, res) => res.json({ ok: true }));
 
 // ─── Prometheus метрики ───────────────────────────────────────────
 
