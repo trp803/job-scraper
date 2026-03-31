@@ -77,6 +77,21 @@
       cursor: pointer;
     }
     .btn-copy:hover { background: var(--hover, #f1f5f9); }
+    .btn-compile {
+      padding: .4rem 1rem;
+      border-radius: 6px;
+      font-size: .85rem;
+      font-weight: 500;
+      background: #dc2626;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: .35rem;
+    }
+    .btn-compile:hover { background: #b91c1c; }
+    .btn-compile:disabled { background: #fca5a5; cursor: not-allowed; }
     .btn-back {
       font-size: .85rem;
       color: var(--text-muted, #64748b);
@@ -214,6 +229,82 @@
 
     /* ─── Overleaf form (hidden, submit via JS) ──────────── */
     #overleaf-form { display: none; }
+
+    /* ─── Left panel tabs ──────────────────────────────── */
+    .re-left-tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border, #e2e8f0);
+      background: var(--card-bg, #fff);
+      flex-shrink: 0;
+    }
+    .re-left-tab {
+      flex: 1;
+      padding: .55rem .6rem;
+      font-size: .82rem;
+      font-weight: 500;
+      color: var(--text-muted, #64748b);
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: .35rem;
+      transition: color .15s;
+    }
+    .re-left-tab.active { color: var(--primary, #2563eb); border-bottom-color: var(--primary, #2563eb); }
+    .re-left-tab:hover:not(.active) { background: var(--hover, #f1f5f9); }
+    .re-tab-panel { display: none; flex: 1; overflow-y: auto; padding: 1rem; }
+    .re-tab-panel.active { display: flex; flex-direction: column; }
+
+    /* ─── Keyword analysis ─────────────────────────────── */
+    .kw-analyze-btn {
+      display: block; width: 100%; padding: .6rem;
+      margin-bottom: .8rem; border-radius: 7px; font-size: .85rem;
+      font-weight: 600; background: var(--primary, #2563eb); color: #fff;
+      border: none; cursor: pointer; transition: background .15s;
+    }
+    .kw-analyze-btn:hover { background: #1d4ed8; }
+    .kw-analyze-btn:disabled { background: #93c5fd; cursor: not-allowed; }
+    .kw-empty { font-size: .85rem; color: var(--text-muted, #94a3b8); text-align: center; padding: 2rem .5rem; line-height: 1.6; }
+    .kw-stats {
+      font-size: .8rem; color: var(--text-muted, #64748b); margin-bottom: .8rem;
+      padding: .45rem .75rem; background: var(--card-bg, #fff);
+      border-radius: 6px; border: 1px solid var(--border, #e2e8f0); line-height: 1.6;
+    }
+    .kw-stats b { color: var(--text, #1e293b); }
+    .kw-legend { display: flex; gap: .8rem; font-size: .75rem; color: var(--text-muted, #64748b); margin-bottom: .8rem; flex-wrap: wrap; }
+    .kw-legend span { display: flex; align-items: center; gap: .25rem; }
+    .kw-legend-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+    .kw-section { margin-bottom: 1.1rem; }
+    .kw-section-title {
+      font-size: .72rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .05em; color: var(--text-muted, #64748b); margin-bottom: .45rem;
+    }
+    .kw-chips { display: flex; flex-wrap: wrap; gap: .35rem; }
+    .kw-chip {
+      display: inline-flex; align-items: center; gap: .25rem;
+      padding: .22rem .65rem; border-radius: 20px; font-size: .8rem; font-weight: 500;
+      cursor: pointer; border: 1px solid transparent;
+      transition: opacity .15s, transform .1s; user-select: none;
+    }
+    .kw-chip:hover { transform: translateY(-1px); opacity: .82; }
+    .kw-chip.found  { background: #dcfce7; color: #166534; border-color: #bbf7d0; cursor: default; }
+    .kw-chip.found:hover { transform: none; opacity: 1; }
+    .kw-chip.missing { background: #fef3c7; color: #92400e; border-color: #fde68a; }
+    .kw-chip.missing:hover { background: #fef9c3; }
+    .kw-chip.missing::after { content: '+'; font-size: .85em; opacity: .7; }
+    .kw-copy-missing {
+      display: block; width: 100%; padding: .45rem; margin-top: .8rem;
+      border-radius: 6px; font-size: .8rem; background: transparent;
+      border: 1px solid var(--border, #cbd5e1); color: var(--text-muted, #64748b); cursor: pointer;
+    }
+    .kw-copy-missing:hover { background: var(--hover, #f1f5f9); }
+    .kw-badge {
+      background: #f59e0b; color: #fff; border-radius: 10px;
+      padding: .05rem .4rem; font-size: .7rem; font-weight: 600;
+    }
   </style>
 </head>
 <body>
@@ -255,6 +346,10 @@
   <span class="save-status" id="save-status">Збережено!</span>
 
   <button class="btn-copy" onclick="copyLatex()" title="Копіювати LaTeX код">Копіювати</button>
+  <button class="btn-compile" id="btn-compile" onclick="compilePdf()" title="Згенерувати PDF через pdflatex">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8.5 7.5c0 .83-.67 1.5-1.5 1.5H9v2H7.5V7H10c.83 0 1.5.67 1.5 1.5v1zm5 2c0 .83-.67 1.5-1.5 1.5h-2.5V7H15c.83 0 1.5.67 1.5 1.5v3zm4-3H19v1h1.5V11H19v2h-1.5V7h3v1.5zM9 9.5h1v-1H9v1zM4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm10 5.5h1v-3h-1v3z"/></svg>
+    PDF
+  </button>
   <button class="btn-overleaf" onclick="openOverleaf()" title="Скомпілювати в Overleaf">
     <svg width="14" height="14" viewBox="0 0 50 50" fill="currentColor"><path d="M25 2C12.3 2 2 12.3 2 25s10.3 23 23 23 23-10.3 23-23S37.7 2 25 2zm0 4c10.5 0 19 8.5 19 19s-8.5 19-19 19S6 35.5 6 25 14.5 6 25 6zm-6 8v22l16-11-16-11z"/></svg>
     Overleaf
@@ -271,15 +366,22 @@
 <main>
   <div class="re-split">
 
-    <!-- Left: vacancy / notes -->
+    <!-- Left: tabs (vacancy | keywords) -->
     <div class="re-left">
-      <div class="re-left-header">
-        <span>Опис вакансії</span>
+
+      <!-- Tab switcher -->
+      <div class="re-left-tabs">
+        <button class="re-left-tab active" id="tab-btn-vacancy" onclick="switchTab('vacancy')">Вакансія</button>
+        <button class="re-left-tab" id="tab-btn-keywords" onclick="switchTab('keywords')">
+          Ключові слова <span id="kw-badge" class="kw-badge" style="display:none"></span>
+        </button>
         <% if (vacancy && vacancy.url) { %>
-          <a href="<%= vacancy.url %>" target="_blank" class="vacancy-link">відкрити ↗</a>
+          <a href="<%= vacancy.url %>" target="_blank" class="vacancy-link" style="padding:.4rem .7rem;font-size:.8rem;display:flex;align-items:center;white-space:nowrap">відкрити ↗</a>
         <% } %>
       </div>
-      <div class="re-left-body">
+
+      <!-- Panel: Vacancy -->
+      <div class="re-tab-panel active" id="panel-vacancy">
         <% if (vacancy) { %>
           <div class="vacancy-info-block">
             <div class="vacancy-info-title"><%= vacancy.title %></div>
@@ -296,12 +398,28 @@
             <p class="no-vacancy-hint">Детальний опис недоступний. Відкрий вакансію на сайті роботодавця.</p>
           <% } %>
         <% } else { %>
-          <p class="no-vacancy-hint">Встав опис вакансії сюди для зручності при редагуванні резюме:</p>
+          <p class="no-vacancy-hint">Встав опис вакансії для аналізу ключових слів:</p>
           <textarea class="re-vacancy-textarea" id="vacancy-paste"
             placeholder="Вставте текст вакансії тут...
-Вимоги, технології, обов'язки — все що потрібно врахувати в резюме."></textarea>
+Вимоги, технології, обов'язки — все що потрібно врахувати в резюме."
+            oninput="onVacancyPaste()"></textarea>
         <% } %>
       </div>
+
+      <!-- Panel: Keywords -->
+      <div class="re-tab-panel" id="panel-keywords">
+        <button class="kw-analyze-btn" id="btn-analyze" onclick="analyzeVacancy()">
+          Аналізувати вакансію
+        </button>
+        <div id="kw-results">
+          <div class="kw-empty">
+            Натисни кнопку — знайду ключові слова у вакансії<br>та покажу які вже є у твоєму резюме.<br><br>
+            <b style="color:var(--text,#1e293b)">Жовті</b> — відсутні, клік → вставить у редактор.<br>
+            <b style="color:var(--text,#1e293b)">Зелені</b> — вже є в LaTeX.
+          </div>
+        </div>
+      </div>
+
     </div>
 
     <!-- Right: CodeMirror LaTeX editor -->
@@ -396,12 +514,263 @@ function copyLatex() {
   });
 }
 
+// ─── Компіляція PDF через pdflatex ───────────────────────────────
+async function compilePdf() {
+  const btn  = document.getElementById('btn-compile');
+  const orig = btn.innerHTML;
+  btn.textContent = 'Компіляція...';
+  btn.disabled = true;
+  try {
+    const resp = await fetch('/resume/compile', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        latex_code: editor.getValue(),
+        name: document.getElementById('re-name').value.trim() || 'resume',
+      }),
+    });
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      alert('Помилка компіляції:\n' + (err.error || resp.statusText));
+      return;
+    }
+    const blob     = await resp.blob();
+    const url      = URL.createObjectURL(blob);
+    const a        = document.createElement('a');
+    a.href         = url;
+    a.download     = (document.getElementById('re-name').value.trim() || 'resume') + '.pdf';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    alert('Мережева помилка: ' + e.message);
+  } finally {
+    btn.innerHTML = orig;
+    btn.disabled  = false;
+  }
+}
+
 // ─── Відкрити в Overleaf ──────────────────────────────────────────
 function openOverleaf() {
   document.getElementById('overleaf-snip').value = editor.getValue();
   document.getElementById('overleaf-snip-name').value =
     (document.getElementById('re-name').value.trim() || 'resume') + '.tex';
   document.getElementById('overleaf-form').submit();
+}
+
+// ─── Tab switcher ─────────────────────────────────────────────────
+function switchTab(name) {
+  ['vacancy', 'keywords'].forEach(t => {
+    document.getElementById('panel-' + t).classList.toggle('active', t === name);
+    document.getElementById('tab-btn-' + t).classList.toggle('active', t === name);
+  });
+}
+
+// ─── Vacancy text helpers ─────────────────────────────────────────
+function getVacancyText() {
+  // Спочатку — серверний опис вакансії
+  const desc = document.querySelector('.vacancy-info-desc');
+  if (desc && desc.textContent.trim()) return desc.textContent;
+  // Потім — textarea (ручна вставка)
+  const ta = document.getElementById('vacancy-paste');
+  if (ta && ta.value.trim()) return ta.value;
+  return '';
+}
+
+// При вставці тексту у textarea — показати кнопку аналізу більш помітно
+function onVacancyPaste() {
+  const ta = document.getElementById('vacancy-paste');
+  const btn = document.getElementById('btn-analyze');
+  if (ta && ta.value.trim().length > 50) {
+    btn.textContent = 'Аналізувати вставлений текст';
+  }
+}
+
+// ─── Keyword database ─────────────────────────────────────────────
+const KW_DB = {
+  'Контейнеризація': [
+    'Docker','docker-compose','Docker Compose','Docker Swarm','Podman','containerd','OCI',
+  ],
+  'Оркестрація': [
+    'Kubernetes','K8s','Helm','OpenShift','Rancher','EKS','GKE','AKS','KIND','k3s','Minikube',
+  ],
+  'CI/CD': [
+    'Jenkins','GitLab CI','GitHub Actions','CircleCI','ArgoCD','Argo CD','FluxCD','Flux',
+    'Tekton','TeamCity','Bamboo','Travis CI','Drone CI','Spinnaker','Concourse','Octopus',
+  ],
+  'IaC': [
+    'Terraform','Ansible','Puppet','Chef','Pulumi','CloudFormation','Bicep','Vagrant',
+    'Packer','SaltStack','CDK',
+  ],
+  'Хмара': [
+    'AWS','GCP','Azure','DigitalOcean','Hetzner','Linode','Cloudflare',
+    'S3','EC2','Lambda','ECS','EKS','RDS','VPC','IAM','Route53','CloudFront',
+    'Cloud Run','Cloud Functions','BigQuery','Azure DevOps','Azure AKS',
+  ],
+  'Моніторинг та логи': [
+    'Prometheus','Grafana','Loki','Alertmanager','Datadog','New Relic','Zabbix',
+    'Nagios','Elasticsearch','Kibana','Logstash','ELK','Jaeger','OpenTelemetry',
+    'Fluentd','Promtail','cAdvisor','Node Exporter','VictoriaMetrics','InfluxDB',
+  ],
+  'Мережа та проксі': [
+    'Nginx','HAProxy','Traefik','Istio','Envoy','Consul','VPN','TCP/IP','DNS',
+    'SSL/TLS','Load Balancer','Ingress','Service Mesh','Vault',
+  ],
+  'Мови та скрипти': [
+    'Python','Bash','Shell','Go','Golang','JavaScript','TypeScript','Ruby',
+    'PowerShell','Groovy','YAML','JSON','HCL','Make','Makefile',
+  ],
+  'Бази даних': [
+    'PostgreSQL','MySQL','MariaDB','MongoDB','Redis','Elasticsearch',
+    'ClickHouse','Kafka','RabbitMQ','NATS','Cassandra','SQLite',
+  ],
+  'Безпека': [
+    'Trivy','SonarQube','SAST','DAST','HashiCorp Vault','RBAC','DevSecOps',
+    'CIS','OWASP','Snyk','Falco','OPA','Gatekeeper','Cosign','SBOM',
+  ],
+  'Практики та методології': [
+    'CI/CD','GitOps','IaC','DevSecOps','SRE','Agile','Scrum','Kanban',
+    'Blue-Green','Canary','Zero Downtime','High Availability','HA','DR',
+    'Disaster Recovery','microservices','мікросервіси','12-Factor','observability',
+  ],
+  'Git та VCS': [
+    'Git','GitHub','GitLab','Bitbucket','Git Flow','trunk-based','monorepo',
+  ],
+  'Linux': [
+    'Linux','Ubuntu','CentOS','Debian','RHEL','Alpine','systemd','cron','iptables',
+    'SELinux','AppArmor','bash scripting',
+  ],
+  'Сертифікати': [
+    'CKA','CKAD','CKS','AWS Solutions Architect','AWS DevOps Engineer',
+    'GCP Associate','Google Cloud','Azure Fundamentals','HashiCorp Certified',
+  ],
+};
+
+// ─── Keyword analysis logic ───────────────────────────────────────
+function escapeRx(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function analyzeVacancy() {
+  const vacText  = getVacancyText();
+  const latex    = editor.getValue();
+  const btn      = document.getElementById('btn-analyze');
+  const resultsEl = document.getElementById('kw-results');
+
+  if (!vacText.trim()) {
+    // Якщо тексту немає — перемкнути на вкладку вакансії
+    switchTab('vacancy');
+    const ta = document.getElementById('vacancy-paste');
+    if (ta) ta.focus();
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Аналіз...';
+
+  // Невеликий тайм-аут щоб UI оновився до важкого обчислення
+  setTimeout(() => {
+    const found    = {};   // category → [{kw, inResume}]
+    let totalFound = 0;
+    let totalMiss  = 0;
+
+    for (const [cat, keywords] of Object.entries(KW_DB)) {
+      const hits = [];
+      for (const kw of keywords) {
+        const rx = new RegExp('(?<![\\w-])' + escapeRx(kw) + '(?![\\w-])', 'i');
+        if (rx.test(vacText)) {
+          const inResume = new RegExp('(?<![\\w-])' + escapeRx(kw) + '(?![\\w-])', 'i').test(latex);
+          hits.push({ kw, inResume });
+          totalFound++;
+          if (!inResume) totalMiss++;
+        }
+      }
+      if (hits.length) found[cat] = hits;
+    }
+
+    btn.disabled = false;
+    btn.textContent = 'Оновити аналіз';
+
+    // Бейдж на вкладці
+    const badge = document.getElementById('kw-badge');
+    if (totalMiss > 0) {
+      badge.textContent = totalMiss;
+      badge.style.display = '';
+    } else {
+      badge.style.display = 'none';
+    }
+
+    if (totalFound === 0) {
+      resultsEl.innerHTML = '<div class="kw-empty">Ключових слів DevOps/Cloud не знайдено у вакансії. Спробуй вставити більше тексту з описом позиції.</div>';
+      return;
+    }
+
+    // Рендер
+    let html = `
+      <div class="kw-stats">
+        Знайдено в вакансії: <b>${totalFound}</b> &nbsp;·&nbsp;
+        Вже в резюме: <b style="color:#166534">${totalFound - totalMiss}</b> &nbsp;·&nbsp;
+        Потрібно додати: <b style="color:#92400e">${totalMiss}</b>
+      </div>
+      <div class="kw-legend">
+        <span><span class="kw-legend-dot" style="background:#86efac"></span>Вже в резюме</span>
+        <span><span class="kw-legend-dot" style="background:#fde68a"></span>Відсутні — клік → вставить</span>
+      </div>
+    `;
+
+    for (const [cat, hits] of Object.entries(found)) {
+      html += `<div class="kw-section"><div class="kw-section-title">${cat}</div><div class="kw-chips">`;
+      for (const { kw, inResume } of hits) {
+        if (inResume) {
+          html += `<span class="kw-chip found" title="Вже є в резюме">${kw}</span>`;
+        } else {
+          // data-kw через escaping
+          const safe = kw.replace(/"/g, '&quot;');
+          html += `<span class="kw-chip missing" data-kw="${safe}" onclick="insertKw(this)" title="Клік → вставити в редактор">${kw}</span>`;
+        }
+      }
+      html += `</div></div>`;
+    }
+
+    // Кнопка "скопіювати всі відсутні"
+    if (totalMiss > 0) {
+      html += `<button class="kw-copy-missing" onclick="copyAllMissing()">Скопіювати всі відсутні ключові слова</button>`;
+    }
+
+    resultsEl.innerHTML = html;
+  }, 30);
+}
+
+// ─── Insert keyword at cursor ────────────────────────────────────
+function insertKw(chipEl) {
+  const kw = chipEl.dataset.kw;
+  if (!kw) return;
+  editor.focus();
+  editor.replaceSelection(kw);
+
+  // Позначити чип як доданий
+  chipEl.classList.remove('missing');
+  chipEl.classList.add('found');
+  chipEl.onclick = null;
+  chipEl.title = 'Вже є в резюме';
+
+  // Оновити лічильник у бейджі
+  const badge = document.getElementById('kw-badge');
+  const cur   = parseInt(badge.textContent) || 0;
+  if (cur <= 1) { badge.style.display = 'none'; }
+  else { badge.textContent = cur - 1; }
+}
+
+// ─── Copy all missing keywords ────────────────────────────────────
+function copyAllMissing() {
+  const chips = document.querySelectorAll('.kw-chip.missing');
+  const text  = Array.from(chips).map(c => c.dataset.kw).join(', ');
+  if (!text) return;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.querySelector('.kw-copy-missing');
+    if (btn) { btn.textContent = 'Скопійовано!'; setTimeout(() => { btn.textContent = 'Скопіювати всі відсутні ключові слова'; }, 2000); }
+  });
 }
 
 // ─── Темна тема ───────────────────────────────────────────────────
